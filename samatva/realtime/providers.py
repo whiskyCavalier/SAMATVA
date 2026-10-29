@@ -133,7 +133,7 @@ class WebSocketFeed:
                 if code in (401, 403):
                     self.status = "stopped: key rejected"
                     self.last_error = (f"{self.name} refused the connection (HTTP {code}). Check the API key "
-                                       f"in your .env file; run 'opp keys' to see what is set.")
+                                       f"in your .env file; run 'samatva keys' to see what is set.")
                     raise AuthError(self.last_error) from None
                 self.last_error = f"HTTP {code} from {self.name}"
             except (OSError, asyncio.TimeoutError, ConnectionClosed, FeedError) as exc:
@@ -343,7 +343,7 @@ def make_feed(provider: str, ws: Workspace, ticks_per_second: float = 500.0, **k
     if provider == "yahoo":
         from ..data.connectors import YahooQuoteSource
 
-        return YahooPollingFeed(ws, YahooQuoteSource(), interval=float(os.environ.get("OPP_POLL_SECONDS", "5")))
+        return YahooPollingFeed(ws, YahooQuoteSource(), interval=float(os.environ.get("SAMATVA_POLL_SECONDS", "5")))
     raise ValueError(f"Unknown provider '{provider}'.")
 
 

@@ -9,8 +9,8 @@ at second eight, and prints what the processor saw and when.
 
 import asyncio
 
-from openportfolio.realtime import AlertConfig, RealTimeEngine, SimulatedFeed, benchmark
-from openportfolio.workspace import Workspace
+from samatva.realtime import AlertConfig, RealTimeEngine, SimulatedFeed, benchmark
+from samatva.workspace import Workspace
 
 
 async def main() -> None:

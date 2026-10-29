@@ -1,6 +1,6 @@
 """The web API and dashboard server.
 
-Run with ``opp serve`` (or ``uvicorn openportfolio.api.app:app``) and open
+Run with ``samatva serve`` (or ``uvicorn samatva.api.app:app``) and open
 http://localhost:8000. Interactive API documentation is at /docs.
 
 Every analytic in the platform is available as a plain JSON endpoint, so the
@@ -32,6 +32,7 @@ from ..glossary import GLOSSARY
 from ..modules import compliance as C
 from ..modules import hub, performance as P, private_assets as PA, reports, risk_dashboard as RD
 from ..modules import scenarios as S, trading as T
+from ..modules.achchu import Achchu, AxleProfile
 from ..modules.explainer import Explainer
 from ..config import Settings, load_env
 from ..realtime import AlertConfig, RealTimeEngine, SimulatedFeed, benchmark
@@ -80,6 +81,15 @@ class State:
         self.rulebook = C.default_rulebook()
         self.blotter = T.Blotter()
         self.engine: Optional[RealTimeEngine] = None
+        self.axle_profile = AxleProfile()
+        self._achchu: Optional[Achchu] = None
+
+    def achchu(self) -> Achchu:
+        """One Achchu per portfolio and profile, so its simulations are reused between requests."""
+        a = self._achchu
+        if a is None or a.ws is not self.ws or a.p is not self.axle_profile:
+            a = self._achchu = Achchu(self.ws, self.axle_profile)
+        return a
 
     def explainer(self) -> Explainer:
         llm = None
@@ -90,7 +100,7 @@ class State:
                 llm = AnthropicBackend()
             except Exception:
                 llm = None
-        return Explainer(self.ws, self.rulebook, self.funds, llm)
+        return Explainer(self.ws, self.rulebook, self.funds, llm, achchu=self.achchu)
 
     async def restart_engine(self) -> None:
         if self.engine:
@@ -106,14 +116,14 @@ state = State()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if os.environ.get("OPP_LIVE", "1") == "1":
+    if os.environ.get("SAMATVA_LIVE", "1") == "1":
         await state.restart_engine()
     yield
     if state.engine:
         await state.engine.stop()
 
 
-app = FastAPI(title="Open Portfolio Platform", version=__version__, lifespan=lifespan,
+app = FastAPI(title="Samatva", version=__version__, lifespan=lifespan,
               description="One open platform to see your whole portfolio, understand its risk in plain English, "
                           "and act on it.")
 
@@ -337,10 +347,62 @@ def new_order(body: OrderRequest):
         order = T.Order(iid, body.side, body.quantity, body.limit_price)
     except ValueError as e:
         raise HTTPException(400, str(e))
+    axle = None
+    if body.quantity > 0 and iid in state.ws.asset_returns.columns:
+        axle = state.achchu().gate(iid, dq)
     if not check["approved"]:
         order.status, order.note = "REJECTED", check["plain"]
+    elif axle and axle["decision"] == "block":
+        order.status, order.note = "REJECTED", axle["plain"]
+    elif axle and axle["decision"] in ("hold", "wait"):
+        order.note = axle["plain"]  # recorded, with Achchu's advice to reflect or wait
     state.blotter.add(order)
-    return ok({"order": order.as_dict(), "compliance": check})
+    return ok({"order": order.as_dict(), "compliance": check, "achchu": axle})
+
+
+# --------------------------------------------------------------------------- 6b. Achchu, the axle
+class GateRequest(BaseModel):
+    instrument_id: str
+    quantity: float = Field(..., description="Quantity change: positive to buy, negative to sell")
+
+
+@app.get("/api/achchu")
+def achchu_report():
+    return ok(state.achchu().report())
+
+
+@app.post("/api/achchu/gate")
+def achchu_gate(body: GateRequest):
+    try:
+        return ok(state.achchu().gate(body.instrument_id, body.quantity))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(400, str(e).strip("'\""))
+
+
+@app.get("/api/achchu/profile")
+def achchu_profile():
+    return ok(state.axle_profile.as_dict())
+
+
+@app.put("/api/achchu/profile")
+def set_achchu_profile(changes: Dict[str, Optional[float]] = Body(..., examples=[{"stated_tolerance": 0.25,
+                                                                                    "equanimity": 0.7}])):
+    fields = AxleProfile.__dataclass_fields__
+    unknown = [k for k in changes if k not in fields]
+    if unknown:
+        raise HTTPException(422, f"Unknown profile field(s): {', '.join(unknown)}. Known fields: "
+                                 f"{', '.join(fields)}.")
+    current = {k: getattr(state.axle_profile, k) for k in fields}
+    new = AxleProfile(**{**current, **changes})
+    if new.observed_tolerance is not None and not 0 < new.observed_tolerance <= 1:
+        raise HTTPException(422, "observed_tolerance must be between 0 and 1.")
+    if not 0 < new.stated_tolerance <= 1:
+        raise HTTPException(422, "stated_tolerance must be between 0 and 1.")
+    if int(new.horizon_days) < 21:
+        raise HTTPException(422, "horizon_days must be at least 21.")
+    new.horizon_days, new.horizon_months = int(new.horizon_days), int(new.horizon_months)
+    state.axle_profile = new
+    return ok(new.as_dict())
 
 
 @app.post("/api/trading/orders/{order_id}/cancel")

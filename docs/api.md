@@ -1,6 +1,6 @@
 # API reference
 
-Start the server with `opp serve`. Every endpoint returns JSON unless stated otherwise. Interactive documentation, where you can try each call in the browser, is at `/docs` on the running server.
+Start the server with `samatva serve`. Every endpoint returns JSON unless stated otherwise. Interactive documentation, where you can try each call in the browser, is at `/docs` on the running server.
 
 Conventions:
 
@@ -68,8 +68,31 @@ curl -s -X POST localhost:8000/api/scenarios/custom \
 | POST | `/api/trading/optimise` | Body `{"method": "risk_parity", "max_weight": 0.2, "min_weight": 0.01}`. Methods: `min_variance`, `max_sharpe`, `risk_parity`, `mean_variance` |
 | POST | `/api/trading/rebalance?create_orders=true` | Body: target weights `{"NWT": 0.08, ...}`. Returns the trades, costs and pre-trade verdict. Orders are created only if the check passes |
 | GET | `/api/trading/orders` | The blotter |
-| POST | `/api/trading/orders` | Body `{"instrument_id", "side": "BUY" or "SELL", "quantity", "limit_price"}`. Checked before it is recorded; rejected orders are kept with their reason |
+| POST | `/api/trading/orders` | Body `{"instrument_id", "side": "BUY" or "SELL", "quantity", "limit_price"}`. Checked by compliance and, for buys, by Achchu before it is recorded; rejected orders are kept with their reason |
 | POST | `/api/trading/orders/{id}/cancel` | Cancels an open order |
+
+## Achchu (the axle)
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/api/achchu` | Capacity, fatigue (damage now, strength left, history, worst falls), chance of breaking, load shares, home ground, the verses used and a plain summary |
+| POST | `/api/achchu/gate` | Body `{"instrument_id": "NWT", "quantity": 500}` (negative to sell). Returns `decision` (`allow`, `wait`, `hold` or `block`), `safe_quantity`, the four `strengths`, the three `tests` and a plain explanation |
+| GET | `/api/achchu/profile` | The investor's current profile |
+| PUT | `/api/achchu/profile` | Body: any profile fields, for example `{"stated_tolerance": 0.25, "equanimity": 0.7}`. Unknown fields or out-of-range values return 422 |
+
+Example:
+
+```bash
+curl -s -X POST localhost:8000/api/achchu/gate \
+  -H 'Content-Type: application/json' \
+  -d '{"instrument_id": "EMF", "quantity": -3000}' | jq '{decision, plain}'
+{
+  "decision": "allow",
+  "plain": "Allowed. The trade is worth more than the market's resistance, ..."
+}
+```
+
+`POST /api/trading/orders` also runs the gate on every buy, and adds its verdict as `achchu`. An order the gate blocks is rejected; *hold* and *wait* are recorded as advice on the order.
 
 ## Private assets
 

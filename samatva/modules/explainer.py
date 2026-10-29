@@ -44,7 +44,7 @@ class AnthropicBackend:
         import anthropic  # imported lazily so the package is optional
 
         self.client = anthropic.Anthropic()
-        self.model = model or os.environ.get("OPP_LLM_MODEL", "claude-sonnet-5-5")
+        self.model = model or os.environ.get("SAMATVA_LLM_MODEL", "claude-sonnet-5-5")
         self.max_tokens = max_tokens
 
     def complete(self, system: str, prompt: str) -> str:
@@ -65,8 +65,9 @@ def _pct(match_num: str, unit: Optional[str]) -> float:
 
 class Explainer:
     def __init__(self, ws: Workspace, rulebook: Optional[C.RuleBook] = None, funds=None,
-                 llm: Optional[LLMBackend] = None) -> None:
+                 llm: Optional[LLMBackend] = None, achchu: Optional[Callable] = None) -> None:
         self.ws = ws
+        self._achchu_factory = achchu
         self.rulebook = rulebook or C.default_rulebook()
         self.funds = funds or []
         self.llm = llm
@@ -77,6 +78,8 @@ class Explainer:
              r"tracking error|expected shortfall|duration|dv01|tvpi|dpi|irr|volatility)", self._define),
             (r"\bwhy\b.*\b(down|up|fell|rose|drop|gain|move|moved|change)\b|\btoday\b|\byesterday\b", self._why_moved),
             (r"\bcomplian|\brule|\bbreach|\blimit", self._compliance),
+            (r"\bbreak(ing)?\b(?!.*\b(rule|limit|polic|mandate))|\bgive up\b|\bgiving up\b|\bpanic|\bstrain|\bfatigue|\baxle|\bachchu|"
+             r"\bhow (much|close).*\b(take|bear|stand|handle)|\bcan i (take|bear|stand|handle)", self._axle),
             (r"\bprivate\b|\bcommitment|\bcapital call|\bunfunded", self._private),
             (r"\bliquid|\bsell (it|everything|quickly)|\bhow (fast|quickly)", self._liquidity),
             (r"\binterest rate|\brates?\b|\bduration\b|\bbond|\bdv01", self._rates),
@@ -87,6 +90,23 @@ class Explainer:
             (r"\bvolatil|\bswing|\bbumpy|\brisky\b|\bhow risky", self._volatility),
             (r"\bworth\b|\bvalue\b|\bnav\b|\bwhat do i own|\bholdings?\b|\bsummar", self._overview),
         ]
+
+    def achchu(self):
+        if self._achchu_factory is not None:
+            return self._achchu_factory()
+        from .achchu import Achchu
+
+        if getattr(self, "_achchu", None) is None:
+            self._achchu = Achchu(self.ws)
+        return self._achchu
+
+    def _axle(self, q: str) -> Dict:
+        r = self.achchu().report()
+        f = r["fatigue"]
+        return {"answer": r["plain"] + " " + r["capacity"]["plain"], "intent": "axle",
+                "sources": [{"label": "Life left", "value": f["life_left"]},
+                            {"label": "Capacity", "value": r["capacity"]["capacity"]},
+                            {"label": "Chance of breaking within a year", "value": r["break_probability"]}]}
 
     # ------------------------------------------------------------------ public
     def ask(self, question: str) -> Dict:
@@ -106,7 +126,8 @@ class Explainer:
             "intent": "unknown", "engine": "built-in", "sources": [],
             "answer": ("I am not sure how to answer that yet. Try asking: 'How much could I lose?', "
                        "'Where is my risk coming from?', 'What if equities fall 20%?', 'How am I doing against "
-                       "the benchmark?', 'How liquid is the portfolio?' or 'Am I breaking any rules?'"),
+                       "the benchmark?', 'How liquid is the portfolio?', 'Am I breaking any rules?' or "
+                       "'How close am I to giving up?'"),
         }
 
     def facts(self) -> Dict:

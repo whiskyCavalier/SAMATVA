@@ -7,9 +7,9 @@ import pandas as pd
 import pytest
 from scipy import stats
 
-from openportfolio.analytics import bonds as B
-from openportfolio.analytics import performance_math as P
-from openportfolio.analytics import risk as R
+from samatva.analytics import bonds as B
+from samatva.analytics import performance_math as P
+from samatva.analytics import risk as R
 
 
 # --------------------------------------------------------------------------- bonds

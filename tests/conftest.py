@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-os.environ.setdefault("OPP_LIVE", "0")  # the API's live engine is started explicitly in the tests that need it
+os.environ.setdefault("SAMATVA_LIVE", "0")  # the API's live engine is started explicitly in the tests that need it
 
-from openportfolio.workspace import Workspace  # noqa: E402
+from samatva.workspace import Workspace  # noqa: E402
 
 
 @pytest.fixture(scope="session")

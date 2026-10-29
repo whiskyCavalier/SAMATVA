@@ -89,7 +89,7 @@ def get_key(var: str, provider: str) -> str:
         raise MissingKeyError(
             f"The '{provider}' feed needs {var}. Add a line '{var}=your-key' to the .env file in the folder you "
             f"run from (copy .env.example to start), or set it as an environment variable. "
-            f"Run 'opp keys' to see what is set."
+            f"Run 'samatva keys' to see what is set."
         )
     return value
 
@@ -104,17 +104,17 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
-        provider = os.environ.get("OPP_DATA_PROVIDER", "simulated").strip().lower()
+        provider = os.environ.get("SAMATVA_DATA_PROVIDER", "simulated").strip().lower()
         if provider not in PROVIDERS:
-            raise ValueError(f"OPP_DATA_PROVIDER '{provider}' is not known. Choose one of: {', '.join(PROVIDERS)}")
+            raise ValueError(f"SAMATVA_DATA_PROVIDER '{provider}' is not known. Choose one of: {', '.join(PROVIDERS)}")
         live = provider != "simulated"
         return cls(
             provider=provider,
-            portfolio_file=os.environ.get("OPP_PORTFOLIO_FILE") or None,
+            portfolio_file=os.environ.get("SAMATVA_PORTFOLIO_FILE") or None,
             # Real instruments trade irregularly, so allow longer gaps before calling a price stale
-            stale_seconds=float(os.environ.get("OPP_STALE_SECONDS", "120" if live else "5")),
-            ticks_per_second=float(os.environ.get("OPP_TICKS_PER_SECOND", "500")),
-            benchmark=os.environ.get("OPP_BENCHMARK") or None,
+            stale_seconds=float(os.environ.get("SAMATVA_STALE_SECONDS", "120" if live else "5")),
+            ticks_per_second=float(os.environ.get("SAMATVA_TICKS_PER_SECOND", "500")),
+            benchmark=os.environ.get("SAMATVA_BENCHMARK") or None,
         )
 
 

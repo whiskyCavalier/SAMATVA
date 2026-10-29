@@ -5,7 +5,7 @@ The exported page needs no server: every API answer is captured in advance
 live module runs a faithful in-browser copy of the stream processor. Custom
 scenarios are recomputed in the browser using the same bond maths.
 
-    opp export-demo dashboard-demo.html
+    samatva export-demo dashboard-demo.html
 """
 
 from __future__ import annotations
@@ -20,13 +20,13 @@ from .api.app import STATIC, clean
 GET_PATHS = [
     "/api/summary", "/api/holdings", "/api/risk", "/api/scenarios", "/api/scenarios/projection",
     "/api/performance", "/api/performance/attribution", "/api/compliance", "/api/private", "/api/commentary",
-    "/api/glossary", "/api/trading/orders", "/api/live/benchmark?ticks=200000",
+    "/api/glossary", "/api/trading/orders", "/api/live/benchmark?ticks=200000", "/api/achchu",
 ] + [f"/api/allocation?by={d}" for d in ("asset_class", "sector", "country", "currency")]
 
 SAMPLE_QUESTIONS = [
     "How much is my portfolio worth?", "How much could I lose?", "Where is my risk coming from?",
     "How am I doing against the benchmark?", "Why did the portfolio move today?", "How liquid is the portfolio?",
-    "Am I breaking any rules?", "How exposed am I to interest rates?", "Is the portfolio concentrated?",
+    "Am I breaking any rules?", "How close am I to breaking?", "How exposed am I to interest rates?", "Is the portfolio concentrated?",
     "How risky is it?", "What about my private funds?", "What happens in a 2008 crisis?",
     "What happens in a 2022-style inflation shock?", "What does Sharpe ratio mean?", "What is VaR?",
     "What is drawdown?", "What is duration?", "What is TVPI?",
@@ -34,7 +34,7 @@ SAMPLE_QUESTIONS = [
 
 
 def build_payload() -> dict:
-    os.environ["OPP_LIVE"] = "0"
+    os.environ["SAMATVA_LIVE"] = "0"
     from fastapi.testclient import TestClient
 
     from .api.app import app, state
@@ -49,6 +49,11 @@ def build_payload() -> dict:
         opt = client.post("/api/trading/optimise", json={"method": m}).json()
         out[f"POST /api/trading/optimise {m}"] = opt
         out[f"POST /api/trading/rebalance {m}"] = client.post("/api/trading/rebalance", json=opt["weights"]).json()
+    from .api.static_presets import GATE_PRESETS
+
+    for iid, q in GATE_PRESETS:
+        out[f"POST /api/achchu/gate {iid} {q}"] = client.post("/api/achchu/gate", json={"instrument_id": iid,
+                                                                                        "quantity": q}).json()
     out["answers"] = {q: client.get("/api/explain?q=" + quote(q)).json() for q in SAMPLE_QUESTIONS}
 
     ws = state.ws

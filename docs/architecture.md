@@ -8,9 +8,9 @@ The platform is four layers, each of which depends only on the layers below it.
  ├───────────────────────────────────────────────────────────────┤
  │ Modules       hub · risk · scenarios · performance ·          │
  │               compliance · trading · private · reports ·      │
- │               explainer · realtime                            │
+ │               explainer · achchu · realtime                   │
  ├───────────────────────────────────────────────────────────────┤
- │ Analytics     risk · bonds · performance maths (pure)         │
+ │ Analytics     risk · bonds · performance · fatigue (pure)     │
  ├───────────────────────────────────────────────────────────────┤
  │ Data          models · security master · market data ·        │
  │               connectors · quality checks                     │
@@ -19,11 +19,11 @@ The platform is four layers, each of which depends only on the layers below it.
 
 ## The ideas that hold it together
 
-**One data model.** Every module reads the same `Instrument`, `Position`, `Portfolio` and `MarketData` objects (`openportfolio/data`). There is no module-specific copy of the holdings, so numbers cannot drift apart between screens.
+**One data model.** Every module reads the same `Instrument`, `Position`, `Portfolio` and `MarketData` objects (`samatva/data`). There is no module-specific copy of the holdings, so numbers cannot drift apart between screens.
 
 **The Workspace.** `Workspace(master, market, portfolio)` is the single object passed to every module. It computes the valuation, weights, base-currency prices, return history and NAV history once, and caches them. Modules take a workspace and return plain dictionaries, which the API serialises without translation. To ask *what if*, a module builds a new workspace with `with_portfolio()` or `with_market()`. The original is never mutated, so pre-trade checks and scenarios cannot leak into the real state.
 
-**Pure analytics.** `openportfolio/analytics` contains only mathematics: arrays and series in, numbers out, with no I/O and no knowledge of portfolios. This is the part most worth auditing, and its plainness makes that easy.
+**Pure analytics.** `samatva/analytics` contains only mathematics: arrays and series in, numbers out, with no I/O and no knowledge of portfolios. This is the part most worth auditing, and its plainness makes that easy.
 
 **Words alongside numbers.** `glossary.py` holds the label, plain meaning and formula of every metric. Modules wrap values with `metric(key, value)`, so the meaning travels with the number all the way to the screen, the PDF and the API.
 
@@ -40,7 +40,9 @@ The platform is four layers, each of which depends only on the layers below it.
 | | `quality.py` | Pre-analysis data checks |
 | | `sample.py` | The simulated sample universe |
 | `analytics` | `risk.py`, `bonds.py`, `performance_math.py` | Pure maths |
-| `modules` | `hub.py` … `reports.py` | The eight modules |
+| | `fatigue.py` | Rainflow counting, fatigue damage with healing, calibration |
+| `modules` | `hub.py` … `reports.py` | The original eight modules |
+| | `achchu.py` | The axle: capacity, loads, fatigue, chance of breaking, home ground and the trade gate |
 | | `explainer.py` | Question answering, commentary, anomaly flags |
 | `realtime` | `feed.py`, `processor.py`, `engine.py` | Streaming |
 | `api` | `app.py`, `static/index.html` | FastAPI server and dashboard |
@@ -50,8 +52,8 @@ The platform is four layers, each of which depends only on the layers below it.
 
 The dashboard is a single HTML file with no build step and no front-end framework. Charts are drawn as SVG and canvas by small functions inside it. It runs in two modes:
 
-- **Server mode** (served by `opp serve`): it calls the JSON API and listens to `/ws/live`.
-- **Demo mode** (`opp export-demo demo.html`): every API response is captured in advance by calling the real API in-process, so the shapes are identical, and embedded in the page. Custom scenarios and the explainer's *what if* questions are recomputed in the browser with the same bond maths. The live module runs a JavaScript copy of the stream processor. The result is one file that works anywhere, including offline.
+- **Server mode** (served by `samatva serve`): it calls the JSON API and listens to `/ws/live`.
+- **Demo mode** (`samatva export-demo demo.html`): every API response is captured in advance by calling the real API in-process, so the shapes are identical, and embedded in the page. Custom scenarios and the explainer's *what if* questions are recomputed in the browser with the same bond maths. The live module runs a JavaScript copy of the stream processor. The result is one file that works anywhere, including offline.
 
 ## Extending the platform
 

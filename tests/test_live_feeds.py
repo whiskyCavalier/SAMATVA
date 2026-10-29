@@ -17,10 +17,10 @@ import pandas as pd
 import pytest
 from websockets.asyncio.server import serve
 
-from openportfolio import config
-from openportfolio.data.live_universe import build_live_workspace, read_portfolio_file
-from openportfolio.realtime import RealTimeEngine
-from openportfolio.realtime.providers import (AlpacaFeed, AuthError, CoinbaseFeed, FeedError, FinnhubFeed,
+from samatva import config
+from samatva.data.live_universe import build_live_workspace, read_portfolio_file
+from samatva.realtime import RealTimeEngine
+from samatva.realtime.providers import (AlpacaFeed, AuthError, CoinbaseFeed, FeedError, FinnhubFeed,
                                               _iso_to_epoch, make_feed, symbol_map)
 
 GOOD_KEY = "test-key-123456"
@@ -28,19 +28,19 @@ GOOD_KEY = "test-key-123456"
 
 # --------------------------------------------------------------------------- keys and settings
 def test_env_file_parsing(tmp_path, monkeypatch):
-    for v in ("OPP_A", "OPP_B", "OPP_C", "OPP_D", "OPP_KEEP"):
+    for v in ("SAMATVA_A", "SAMATVA_B", "SAMATVA_C", "SAMATVA_D", "SAMATVA_KEEP"):
         monkeypatch.delenv(v, raising=False)
-    monkeypatch.setenv("OPP_KEEP", "from-environment")
+    monkeypatch.setenv("SAMATVA_KEEP", "from-environment")
     f = tmp_path / ".env"
-    f.write_text('# comment\n\nOPP_A=plain\nexport OPP_B="quoted value"\nOPP_C=abc  # note\nOPP_KEEP=from-file\n'
-                 "OPP_D='single'\nnot a setting\n")
+    f.write_text('# comment\n\nSAMATVA_A=plain\nexport SAMATVA_B="quoted value"\nSAMATVA_C=abc  # note\nSAMATVA_KEEP=from-file\n'
+                 "SAMATVA_D='single'\nnot a setting\n")
     loaded = config.load_env(f)
-    assert os.environ["OPP_A"] == "plain"
-    assert os.environ["OPP_B"] == "quoted value"
-    assert os.environ["OPP_C"] == "abc"
-    assert os.environ["OPP_D"] == "single"
-    assert os.environ["OPP_KEEP"] == "from-environment"  # a real environment variable wins
-    assert "OPP_KEEP" not in loaded
+    assert os.environ["SAMATVA_A"] == "plain"
+    assert os.environ["SAMATVA_B"] == "quoted value"
+    assert os.environ["SAMATVA_C"] == "abc"
+    assert os.environ["SAMATVA_D"] == "single"
+    assert os.environ["SAMATVA_KEEP"] == "from-environment"  # a real environment variable wins
+    assert "SAMATVA_KEEP" not in loaded
     assert config.load_env(tmp_path / "missing.env") == {}
 
 
@@ -57,11 +57,11 @@ def test_keys_are_masked_and_errors_name_the_variable(monkeypatch):
 
 
 def test_settings_from_environment(monkeypatch):
-    monkeypatch.setenv("OPP_DATA_PROVIDER", "coinbase")
-    monkeypatch.delenv("OPP_STALE_SECONDS", raising=False)
+    monkeypatch.setenv("SAMATVA_DATA_PROVIDER", "coinbase")
+    monkeypatch.delenv("SAMATVA_STALE_SECONDS", raising=False)
     st = config.Settings.from_env()
     assert st.provider == "coinbase" and st.stale_seconds == 120  # live feeds get a longer stale window
-    monkeypatch.setenv("OPP_DATA_PROVIDER", "bloomberg-by-magic")
+    monkeypatch.setenv("SAMATVA_DATA_PROVIDER", "bloomberg-by-magic")
     with pytest.raises(ValueError, match="Choose one of"):
         config.Settings.from_env()
 
@@ -323,7 +323,7 @@ def test_build_live_workspace_from_history(tmp_path):
     assert (ws.market.prices.index.dayofweek < 5).all()  # stocks: weekdays only
     assert ws.market.benchmark is not None and "SPY" in hist.calls
     assert ws.master.get("AAPL").avg_daily_volume == pytest.approx(1_000_000)
-    from openportfolio.modules import compliance, risk_dashboard
+    from samatva.modules import compliance, risk_dashboard
 
     assert risk_dashboard.headline(ws)[0]["value"] > 0
     assert "fossil" not in compliance.default_rulebook().summary(ws)["plain"]  # tags load; no exclusion rule for it
@@ -337,7 +337,7 @@ def test_crypto_keeps_weekends_and_converts_volume_to_coins():
 
 
 def test_history_falls_back_when_the_first_source_fails(monkeypatch):
-    import openportfolio.data.live_universe as LU
+    import samatva.data.live_universe as LU
 
     backup = _fake_history(seed=1)
     monkeypatch.setattr(LU, "CoinbaseHistory", lambda: backup)

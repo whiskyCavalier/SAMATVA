@@ -244,11 +244,11 @@ def to_pdf(ws: Workspace, path, rulebook=None, funds=None) -> str:
         canvas.saveState()
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(colors.HexColor("#7b8794"))
-        canvas.drawString(18 * mm, 10 * mm, f"{s['portfolio']} · Open Portfolio Platform")
+        canvas.drawString(18 * mm, 10 * mm, f"{s['portfolio']} · Samatva")
         canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, f"Page {doc.page}")
         canvas.restoreState()
 
     doc = SimpleDocTemplate(str(path), pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=16 * mm,
-                            bottomMargin=18 * mm, title=f"{s['portfolio']} report", author="Open Portfolio Platform")
+                            bottomMargin=18 * mm, title=f"{s['portfolio']} report", author="Samatva")
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return str(path)

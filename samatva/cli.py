@@ -1,19 +1,20 @@
-"""Command-line interface: ``opp <command>``.
+"""Command-line interface: ``samatva <command>``.
 
-    opp demo                 a full tour of every module, printed to the terminal
-    opp serve                start the dashboard and API on http://localhost:8000
-    opp stream               watch the real-time engine work in the terminal
-    opp benchmark            measure raw tick-processing speed
-    opp ask "question"       ask the explainer a question
-    opp report               write PDF and Excel reports
-    opp import FILE.csv      analyse your own holdings file
-    opp export-demo FILE     write a self-contained demo dashboard (no server needed)
+    samatva demo                 a full tour of every module, printed to the terminal
+    samatva serve                start the dashboard and API on http://localhost:8000
+    samatva stream               watch the real-time engine work in the terminal
+    samatva benchmark            measure raw tick-processing speed
+    samatva ask "question"       ask the explainer a question
+    samatva achchu [--trade NWT:500]  how close the investor is to breaking, and whether a trade is safe
+    samatva report               write PDF and Excel reports
+    samatva import FILE.csv      analyse your own holdings file
+    samatva export-demo FILE     write a self-contained demo dashboard (no server needed)
 
   Live market data
-    opp keys [--test]        show which API keys were found (masked) and optionally test each connection
-    opp live --portfolio examples/live_crypto.csv --provider coinbase
+    samatva keys [--test]        show which API keys were found (masked) and optionally test each connection
+    samatva live --portfolio examples/live_crypto.csv --provider coinbase
                              stream real prices for a real portfolio in the terminal
-    opp serve --portfolio examples/live_stocks.csv --provider finnhub
+    samatva serve --portfolio examples/live_stocks.csv --provider finnhub
                              the dashboard, driven by a live feed
 
 Keys are read from a .env file in the current folder (copy .env.example) or
@@ -69,7 +70,14 @@ def cmd_demo(args) -> None:
         print("   " + PA.fund_metrics(f)["plain"])
     print("   " + PA.combined_view(ws, funds)["plain"])
     _rule("8. Reports")
-    print("   Run 'opp report' to write a PDF and an Excel workbook.")
+    print("   Run 'samatva report' to write a PDF and an Excel workbook.")
+    _rule("9. Achchu — how close is the investor to breaking?")
+    from .modules.achchu import Achchu
+
+    axle = Achchu(ws)
+    print("   " + axle.report()["plain"])
+    g = axle.gate("NWT", 500)
+    print(f"   Buy 500 Northwind? {g['decision'].upper()}. {g['plain']}")
     _rule("AI explainer — can you explain this to me?")
     ex = Explainer(ws, funds=funds)
     for q in ("Where is my risk coming from?", "What if equities fall 20% and rates rise 1%?"):
@@ -84,19 +92,19 @@ def cmd_serve(args) -> None:
 
     # The server reads its settings from the environment, so pass the options through it
     if args.provider:
-        os.environ["OPP_DATA_PROVIDER"] = args.provider
+        os.environ["SAMATVA_DATA_PROVIDER"] = args.provider
     if args.portfolio:
-        os.environ["OPP_PORTFOLIO_FILE"] = args.portfolio
+        os.environ["SAMATVA_PORTFOLIO_FILE"] = args.portfolio
     if args.benchmark:
-        os.environ["OPP_BENCHMARK"] = args.benchmark
+        os.environ["SAMATVA_BENCHMARK"] = args.benchmark
     from .config import Settings
 
     st = Settings.from_env()
     src = f"live prices from {st.provider}" if st.provider != "simulated" else "simulated prices"
     pf = st.portfolio_file or "the sample fund"
-    print(f"Open Portfolio Platform on http://{args.host}:{args.port} with {pf} and {src}. "
+    print(f"Samatva on http://{args.host}:{args.port} with {pf} and {src}. "
           "API docs at /docs; press Ctrl+C to stop.")
-    uvicorn.run("openportfolio.api.app:app", host=args.host, port=args.port, log_level="warning")
+    uvicorn.run("samatva.api.app:app", host=args.host, port=args.port, log_level="warning")
 
 
 def cmd_stream(args) -> None:
@@ -141,7 +149,7 @@ def cmd_keys(args) -> None:
         print(f"  {k['var']:<24} {k['value']:<12} {k['unlocks']}")
     print("\nProviders: " + ", ".join(PROVIDERS))
     if not args.test:
-        print("\nRun 'opp keys --test' to try a short connection to each provider you have keys for.")
+        print("\nRun 'samatva keys --test' to try a short connection to each provider you have keys for.")
         return
     from .realtime.providers import AlpacaFeed, CoinbaseFeed, FinnhubFeed
 
@@ -245,6 +253,42 @@ def cmd_ask(args) -> None:
     print(a["answer"])
 
 
+def cmd_achchu(args) -> None:
+    from .modules.achchu import Achchu, AxleProfile
+
+    ws = _workspace(args)
+    prof = AxleProfile(stated_tolerance=args.tolerance, equanimity=args.equanimity, reserves=args.reserves,
+                       monthly_outflow=args.outflow, monthly_inflow=args.inflow)
+    a = Achchu(ws, prof)
+    r = a.report()
+    c, f = r["capacity"], r["fatigue"]
+    _rule("Achchu — the axle")
+    print(f"   Capacity           {c['capacity']:.1%}   (means {c['means']:.1%}, mind {c['mind']:.1%}; "
+          f"set by {c['binding']})")
+    print(f"   Damage now         {f['damage_now']:.2f}   (closed {f['closed_damage']:.2f}, current fall "
+          f"{f['open_fall_damage']:.2f})")
+    print(f"   Life left          {f['life_left']:.0%}   ({f['state']})")
+    print(f"   Break within a year {r['break_probability']:.0%}")
+    print("\n   Heaviest falls")
+    for w in f["worst_falls"]:
+        print(f"     {w['size']:6.1%} fall  {w['from']} to {w['to']}{' (still open)' if w['still_open'] else ''}"
+              f"   damage {w['damage']:.2f}")
+    print("\n   Load in falls")
+    for row in r["loads"][:5]:
+        print(f"     {row['name']:<32} weight {row['weight']:6.1%}   load {row['load_share']:6.1%}")
+    print(f"\n   Market now: {r['home_ground']['state_now']}")
+    print("\n   " + r["plain"])
+    for t in args.trade or []:
+        iid, _, qty = t.partition(":")
+        g = a.gate(iid, float(qty))
+        _rule(f"Gate: {g['side']} {abs(g['quantity']):,.0f} {g['name']}")
+        print(f"   Decision           {g['decision'].upper()}")
+        for k, v in g["tests"].items():
+            print(f"   {k.replace('_', ' '):<18} {'pass' if v else 'fail'}")
+        print(f"   Safe quantity      {g['safe_quantity']:,.0f}")
+        print("   " + g["plain"])
+
+
 def cmd_report(args) -> None:
     from .modules import reports
     from .modules.private_assets import sample_funds
@@ -283,7 +327,7 @@ def main(argv=None) -> None:
     from .config import load_env
 
     load_env()  # pick up API keys and settings from ./.env, if present
-    p = argparse.ArgumentParser(prog="opp", description="Open Portfolio Platform")
+    p = argparse.ArgumentParser(prog="samatva", description="Samatva")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("demo", help="tour every module in the terminal").set_defaults(fn=cmd_demo)
     s = sub.add_parser("serve", help="start the dashboard and API")
@@ -317,6 +361,14 @@ def main(argv=None) -> None:
     s = sub.add_parser("ask", help="ask the explainer a question")
     s.add_argument("question", nargs="+")
     s.set_defaults(fn=cmd_ask)
+    s = sub.add_parser("achchu", help="how close the investor is to breaking, and whether trades are safe")
+    s.add_argument("--trade", action="append", metavar="ID:QTY", help="check a trade, e.g. NWT:500 or EMF:-3000")
+    s.add_argument("--tolerance", type=float, default=0.20, help="largest fall the investor says they can bear")
+    s.add_argument("--equanimity", type=float, default=0.5, help="0 = very reactive, 1 = perfectly even")
+    s.add_argument("--reserves", type=float, default=0.0, help="cash outside the portfolio")
+    s.add_argument("--outflow", type=float, default=0.0, help="committed monthly spending")
+    s.add_argument("--inflow", type=float, default=0.0, help="monthly income available for that spending")
+    s.set_defaults(fn=cmd_achchu)
     s = sub.add_parser("report", help="write PDF and Excel reports")
     s.add_argument("--pdf", default="portfolio-report.pdf")
     s.add_argument("--xlsx", default="portfolio-report.xlsx")

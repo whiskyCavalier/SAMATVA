@@ -13,7 +13,7 @@ A tick changes one price, so it changes one position, so the portfolio's value c
  (async stream)    (O(1) per tick)            (dashboards, WebSockets, your code)
 ```
 
-**Feeds** (`openportfolio/realtime/feed.py`). Each feed is an asynchronous stream of `Tick(instrument_id, price, ts, seq)`.
+**Feeds** (`samatva/realtime/feed.py`). Each feed is an asynchronous stream of `Tick(instrument_id, price, ts, seq)`.
 
 - `SimulatedFeed` generates realistic prices with no network and no licence. Each step draws one move for every instrument from the Cholesky factor of the holdings' historical covariance matrix, so assets keep their real volatilities and their real relationships to one another. `day_seconds` sets how many real seconds a simulated trading day lasts. At the default of 390, one second is one market minute: lively enough to watch, but statistically faithful. Shocks (`inject_shock`) and outages (`pause`) can be triggered on demand.
 - `PollingFeed` wraps any quote source that returns `{ticker: price}`, such as the included free `YahooQuoteSource` or a licensed vendor, and turns it into the same stream.
@@ -64,7 +64,7 @@ The speed figures come from an ordinary cloud machine. Expect similar or better 
 **In the terminal.**
 
 ```bash
-opp stream --tps 5000 --seconds 10 --shock -0.04 --shock-at 5
+samatva stream --tps 5000 --seconds 10 --shock -0.04 --shock-at 5
 ```
 
 ```
@@ -81,11 +81,11 @@ opp stream --tps 5000 --seconds 10 --shock -0.04 --shock-at 5
 
 ## Connecting a real feed
 
-Ready-made live feeds for Coinbase, Finnhub, Alpaca and Yahoo are in `openportfolio/realtime/providers.py`. [Live market data](live-data.md) explains how to set up their keys and test them. To add another polling source, any object with a `latest(tickers) -> {ticker: price}` method will do:
+Ready-made live feeds for Coinbase, Finnhub, Alpaca and Yahoo are in `samatva/realtime/providers.py`. [Live market data](live-data.md) explains how to set up their keys and test them. To add another polling source, any object with a `latest(tickers) -> {ticker: price}` method will do:
 
 ```python
-from openportfolio.data.connectors import YahooQuoteSource
-from openportfolio.realtime import PollingFeed, RealTimeEngine
+from samatva.data.connectors import YahooQuoteSource
+from samatva.realtime import PollingFeed, RealTimeEngine
 
 engine = RealTimeEngine(ws, PollingFeed(ws, YahooQuoteSource(), interval=5.0))
 await engine.start()

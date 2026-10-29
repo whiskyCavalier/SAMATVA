@@ -14,7 +14,7 @@ Every figure on every screen carries three layers:
 2. **What it means**, in one line: *on 19 days out of 20, the portfolio should not lose more than this.*
 3. **How it is calculated**, behind the small *ƒ How it is calculated* link: *5th percentile of daily returns (historical simulation).*
 
-These words live in a single file (`openportfolio/glossary.py`), so the dashboard, the reports, the API and the explainer always describe a number the same way.
+These words live in a single file (`samatva/glossary.py`), so the dashboard, the reports, the API and the explainer always describe a number the same way.
 
 Two conventions are worth knowing:
 
@@ -155,9 +155,24 @@ The **Engine** panel shows ticks processed, throughput and latency per tick in m
 
 ---
 
+## 9. Achchu (the axle): *how close is the investor to breaking, and what can they safely do now?*
+
+Portfolios do not abandon plans; people do. This screen measures the strain the falls of the past have put on the investor, and checks trades before they are placed. [Achchu](achchu.md) explains the method in full.
+
+- **The four figures at the top.** *Strength left* is what remains of the investor's axle: 100% is fresh, 0% is breaking point. *Capacity* is the largest single fall they can bear, set by the weaker of their means and their steadiness of mind. *Damage now* splits into past falls (healed over time) and the fall still in progress. *Chance of breaking within a year* comes from 600 simulated years.
+- **Strain over time.** Damage jumps when a fall completes and fades in calm periods. The line at 1.0 is breaking point. In the sample, three falls of 11–13% between 2022 and 2026 did most of the damage, and the current 11.6% fall is still open.
+- **The falls that strained most** and **which feathers weigh most** show where the strain came from. A holding whose load is far above its weight is a heavy feather: Northwind is 10% of the money but a quarter of the load.
+- **The axle.** Change the investor's stated tolerance, equanimity, reserves and monthly spending, and every figure is recalculated.
+- **Four strengths.** Choose an instrument and a quantity (negative to sell) and press *Weigh it*. The verdict is one of *Allow*, *Wait*, *Hold and reflect* or *Block*, with the three tests, the four strengths in money, and a safe size where a smaller trade would pass.
+- **Home ground** shows, for each holding, the market states in which its record is good, and whether today's market is one of them.
+
+The same check runs inside the Trading screen's order ticket. An order that Achchu *blocks* is rejected; an order it advises to *hold* or *wait* is recorded with that advice attached.
+
+---
+
 ## Ask: *can you explain this to me?*
 
-Type a question in plain words or choose a suggestion. The explainer recognises questions about value, losses, risk sources, performance, today's move, liquidity, interest rates, concentration, compliance, private funds and definitions. It also turns *what if* questions with numbers into scenarios:
+Type a question in plain words or choose a suggestion. The explainer recognises questions about value, losses, risk sources, performance, today's move, liquidity, interest rates, concentration, compliance, private funds, definitions and the investor's strain (*How close am I to breaking?*). It also turns *what if* questions with numbers into scenarios:
 
 > **What if stocks drop 15% and rates rise 50 bps?**
 > Under 'Equities −15%, rates +0.50 pp', the portfolio would lose about $807,377 (−8.1%). The biggest hit comes from Northwind Technologies (−$150,019).
@@ -168,7 +183,7 @@ Every answer lists the figures it used, so it can be checked. With an API key co
 
 ## Reports
 
-From the API or `opp report`, the platform writes:
+From the API or `samatva report`, the platform writes:
 
 - a **PDF** of four or five pages: summary and commentary, allocation and scenario charts, key risk measures with their meanings, performance, stress tests, compliance, private assets and holdings;
 - an **Excel workbook** with one sheet per module, for anyone who wants to work with the numbers.

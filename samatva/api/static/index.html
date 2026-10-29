@@ -1,4 +1,4 @@
-<title>Open Portfolio Platform</title>
+<title>Samatva</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -220,7 +220,7 @@ select, input[type="number"] { border: 1px solid var(--line); border-radius: var
 
 <div class="app">
   <aside class="rail">
-    <div class="brand">Open Portfolio Platform<small id="pf-name">Loading portfolio…</small></div>
+    <div class="brand">Samatva<small id="pf-name">Loading portfolio…</small></div>
     <nav class="nav" id="nav" aria-label="Modules"></nav>
     <div class="mode" id="mode"></div>
   </aside>
@@ -254,7 +254,7 @@ async function api(path, opts = {}) {
     if (local !== undefined) return local;
     const key = method + " " + path;
     if (key in DEMO) return DEMO[key];
-    throw new Error("This part needs the full platform. Run it with: opp serve");
+    throw new Error("This part needs the full platform. Run it with: samatva serve");
   }
   const r = await fetch(path, { method, headers: opts.body ? { "Content-Type": "application/json" } : {},
     body: opts.body ? JSON.stringify(opts.body) : undefined });
@@ -292,7 +292,7 @@ function niceTicks(lo, hi, n = 5) {
   const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((s) => span / s <= n) || 10 * mag;
   const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10)); return out;
 }
-function lineChart(dates, series, { yfmt = (v) => v.toFixed(0) } = {}) {
+function lineChart(dates, series, { yfmt = (v) => v.toFixed(0), label = "Growth of 100 over time" } = {}) {
   const W = 760, H = 260, L = 44, R = 14, T = 12, B = 26;
   const all = Object.values(series).flat(); const lo = Math.min(...all), hi = Math.max(...all);
   const ticks = niceTicks(lo, hi, 5); const y0 = Math.min(lo, ticks[0]), y1 = Math.max(hi, ticks[ticks.length - 1]);
@@ -301,7 +301,7 @@ function lineChart(dates, series, { yfmt = (v) => v.toFixed(0) } = {}) {
   const years = []; let last = "";
   dates.forEach((d, i) => { const y = d.slice(0, 4); if (y !== last) { if (last) years.push([i, y]); last = y; } });
   const names = Object.keys(series); const port = series[names[0]];
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Growth of 100 over time">
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(label)}">
     ${ticks.map((t) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/><text class="axis" x="${L - 6}" y="${Y(t) + 4}" text-anchor="end">${yfmt(t)}</text>`).join("")}
     ${years.map(([i, y]) => `<text class="axis" x="${X(i)}" y="${H - 6}" text-anchor="middle">${y}</text>`).join("")}
     <path class="area" d="${path(port)}L${X(port.length - 1)} ${H - B}L${L} ${H - B}Z"/>
@@ -342,6 +342,7 @@ const VIEWS = [
   { id: "trading", n: "6", name: "Trading", q: "What should I trade to reach my target?", render: renderTrading },
   { id: "private", n: "7", name: "Private assets", q: "How do my private investments fit in?", render: renderPrivate },
   { id: "live", n: "8", name: "Live stream", q: "What is happening right now, tick by tick?", render: renderLive },
+  { id: "achchu", n: "9", name: "Achchu (the axle)", q: "How close is the investor to breaking, and what can they safely do now?", render: renderAchchu },
   { id: "ask", n: "AI", name: "Ask", q: "Can you explain this to me?", render: renderAsk },
 ];
 const rendered = {};
@@ -573,7 +574,9 @@ async function renderTrading(el, v) {
     e.preventDefault();
     try {
       const r = await api("/api/trading/orders", { method: "POST", body: { instrument_id: $("#t-inst").value, side: $("#t-side").value, quantity: +$("#t-qty").value } });
-      $("#ticket-out").innerHTML = `<p class="plain ${r.compliance.approved ? "pos" : "neg"}">${r.compliance.approved ? "Order placed." : "Order rejected."} ${h(r.compliance.plain)}</p>`;
+      const ax = r.achchu, placed = r.order.status !== "REJECTED";
+      $("#ticket-out").innerHTML = `<p class="plain ${placed ? "pos" : "neg"}">${placed ? "Order placed." : "Order rejected."} ${h(r.compliance.plain)}</p>` +
+        (ax ? `<p class="plain"><span class="pill ${DECISION[ax.decision][0]}">Achchu: ${DECISION[ax.decision][1]}</span> ${h(ax.plain)}</p>` : "");
       drawBlotter();
     } catch (err) { $("#ticket-out").innerHTML = fail(err); }
   });
@@ -605,6 +608,85 @@ async function renderPrivate(el, v) {
       f.forecast.map((y) => `<tr>${td(y.year)}${td(fmt.money(y.calls), 1)}${td(fmt.money(y.distributions), 1)}${td(`<span class="${sign(y.net_cash_flow)}">${fmt.smoney(y.net_cash_flow)}</span>`, 1)}${td(fmt.money(y.nav), 1)}</tr>`))}
     <p class="note">Forecast with the Takahashi-Alexander (Yale) model: calls are a share of what is left to call, distributions a share of value that grows as the fund matures, and value grows 10% a year.</p>
   </div>`)).join("")}`;
+}
+
+/* 9 ---------------------------------------------------------------- Achchu, the axle */
+const GATE_PRESETS = [["NWT", 20], ["NWT", 500], ["NWT", 5000], ["HLX", 300], ["GLDX", 300], ["GLDX", 3000], ["UST10", 2000], ["EMF", -3000]];
+const DECISION = { allow: ["pass", "Allow"], hold: ["warning", "Hold and reflect"], wait: ["info", "Wait"], block: ["breach", "Block"] };
+async function renderAchchu(el, v) {
+  const [r, hold] = await Promise.all([api("/api/achchu"), api("/api/holdings")]);
+  const c = r.capacity, f = r.fatigue, p = r.profile;
+  const lifeCls = f.life_left > 0.6 ? "pos" : f.life_left > 0.3 ? "" : "neg";
+  const dmg = f.history.damage, dates = f.history.dates;
+  el.innerHTML = head("Module 9", v.name, v.q) + `
+  <p class="lead">${h(r.plain)}</p>
+  <div class="kpis">
+    <div class="kpi"><span class="k">Strength left</span><span class="v ${lifeCls}">${fmt.pct(f.life_left, 0)}</span><span class="d">${h(f.state)}; 0% is breaking point</span></div>
+    <div class="kpi"><span class="k">Capacity (one fall)</span><span class="v">${fmt.pct(c.capacity, 0)}</span><span class="d">set by ${c.binding === "mind" ? "steadiness of mind" : "means"}</span></div>
+    <div class="kpi"><span class="k">Damage now</span><span class="v">${fmt.num(f.damage_now)}</span><span class="d">${fmt.num(f.closed_damage)} past + ${fmt.num(f.open_fall_damage)} current fall</span></div>
+    <div class="kpi"><span class="k">Chance of breaking within a year</span><span class="v">${fmt.pct(r.break_probability, 0)}</span><span class="d">ceiling ${fmt.pct(p.max_break_probability, 0)}</span></div>
+  </div>
+  ${panel("Strain over time", lineChart(dates, { Damage: dmg, "Breaking point": dmg.map(() => 1) }, { yfmt: (x) => x.toFixed(1), label: "Accumulated damage over time" }) +
+    `<div class="legend"><span><i style="background:var(--accent)"></i>Accumulated damage</span><span><i style="background:var(--bench)"></i>Breaking point (1.0)</span></div>
+    <p class="note">Each fall is counted with the rainflow method engineers use for bridges and aircraft, charged against the investor's capacity, and allowed to heal in calm periods (half-life ${Math.round(p.healing_half_life_days)} trading days). Falls smaller than ${fmt.pct(p.endurance, 1)} cause no strain. <i>${h(r.verses["475"])}</i></p>`)}
+  <div class="grid2">
+    ${panel("The falls that strained most", table([{ t: "Fall", r: 1 }, { t: "From" }, { t: "To" }, { t: "Damage", r: 1 }],
+      f.worst_falls.map((w) => `<tr>${td(fmt.pct(w.size), 1)}${td(h(w.from))}${td(w.still_open ? `<span class="pill warning">still open</span>` : h(w.to))}${td(fmt.num(w.damage), 1)}</tr>`)) +
+      `<p class="note">Damage grows with the square of a fall's size, so two 6% falls strain far less than one 12% fall.</p>`)}
+    ${panel("Which feathers weigh most", bars(r.loads.slice(0, 7).map((x) => ({ label: x.name, value: x.load_share }))) +
+      `<p class="note">Each holding's share of the portfolio's losses on falling days. A holding whose load is larger than its weight adds more strain than its size suggests.</p>`)}
+  </div>
+  ${panel("The axle", `<div class="kpis k3">
+      <div class="kpi"><span class="k">Means</span><span class="v">${fmt.pct(c.means, 0)}</span><span class="d">largest fall that still leaves needs covered</span></div>
+      <div class="kpi"><span class="k">Mind</span><span class="v">${fmt.pct(c.mind, 0)}</span><span class="d">${c.mind_source === "observed" ? "largest fall actually sat through" : "stated tolerance × safety margin"}</span></div>
+      <div class="kpi"><span class="k">Endurance</span><span class="v">${fmt.pct(p.endurance, 1)}</span><span class="d">rises with equanimity (${fmt.num(p.equanimity)})</span></div></div>
+    <p class="plain">${h(c.plain)}</p>
+    ${DEMO ? `<p class="note">In the full platform you can change the investor's profile here. Run it with: samatva serve</p>` : `
+    <form id="ax-prof" class="row">
+      <label class="small" for="ax-tol">Stated tolerance %</label><input id="ax-tol" type="number" min="1" max="100" step="1" value="${Math.round(p.stated_tolerance * 100)}" style="width:80px">
+      <label class="small" for="ax-eq">Equanimity (0–1)</label><input id="ax-eq" type="number" min="0" max="1" step="0.05" value="${p.equanimity}" style="width:80px">
+      <label class="small" for="ax-res">Reserves</label><input id="ax-res" type="number" min="0" step="1000" value="${p.reserves}" style="width:120px">
+      <label class="small" for="ax-out">Monthly outflow</label><input id="ax-out" type="number" min="0" step="1000" value="${p.monthly_outflow}" style="width:120px">
+      <button class="btn" type="submit">Update profile</button></form>`}`)}
+  ${panel("Four strengths: check a trade before placing it", `
+    ${DEMO ? `<div class="chips" id="gate-chips">${GATE_PRESETS.map(([i, q]) => `<button type="button" class="chip" data-i="${i}" data-q="${q}">${q > 0 ? "Buy" : "Sell"} ${Math.abs(q).toLocaleString("en-US")} ${h(i)}</button>`).join("")}</div>` : `
+    <form id="gate-form" class="row">
+      <label for="g-inst" class="small">Instrument</label><select id="g-inst">${hold.map((x) => `<option value="${h(x.id)}">${h(x.name)}</option>`).join("")}</select>
+      <label for="g-qty" class="small">Quantity (negative to sell)</label><input type="number" id="g-qty" value="500" style="width:110px">
+      <button class="btn primary" type="submit">Weigh it</button></form>`}
+    <div id="gate-out"></div>
+    <p class="note">${h(r.verses["471"])} A trade must clear three tests: its benefit outweighs its costs and added risk; it uses no more than ${fmt.pct(p.spare_share, 0)} of the remaining strength; and it keeps the chance of breaking under the ${fmt.pct(p.max_break_probability, 0)} ceiling (Kural 476). Buying outside a holding's home ground means waiting (Kurals 490 and 495).</p>`)}
+  ${panel("Home ground: where each holding has done well", `<p class="plain">Market now: <b>${h(r.home_ground.state_now)}</b>.</p>` +
+    table([{ t: "Holding" }, { t: "Home ground" }, { t: "Now" }], r.home_ground.holdings.map((x) => `<tr>${td(h(x.name))}${td(`<span class="small">${x.home_ground.length ? h(x.home_ground.join(", ")) : "none found"}</span>`)}${td(x.inside_now == null ? `<span class="pill neutral">no record</span>` : x.inside_now ? `<span class="pill pass">inside</span>` : `<span class="pill warning">outside</span>`)}</tr>`)) +
+    `<p class="note">${h(r.verses["495"])} Home ground is a market state in which the holding's next-day returns have been positive with a t-statistic of at least 1.</p>`)}`;
+  const weigh = async (iid, qty) => {
+    $("#gate-out").innerHTML = `<p class="skeleton">Weighing…</p>`;
+    try {
+      const g = await api("/api/achchu/gate", { method: "POST", body: { instrument_id: iid, quantity: qty } });
+      const [cls, label] = DECISION[g.decision]; const s = g.strengths;
+      $("#gate-out").innerHTML = `<div class="row"><span class="pill ${cls}">${label}</span><span class="small muted">${g.side} ${Math.abs(g.quantity).toLocaleString("en-US")} ${h(g.name)}${g.decision !== "allow" && g.safe_quantity > 0 ? ` · safe size ${g.safe_quantity.toLocaleString("en-US")}` : ""}</span></div>
+        <p class="plain">${h(g.plain)}</p>
+        <div class="kpis"><div class="kpi"><span class="k">Strength of the deed</span><span class="v">${fmt.money(s.deed)}</span><span class="d">expected gain over a year</span></div>
+        <div class="kpi"><span class="k">Allies</span><span class="v">${fmt.money(s.allies)}</span><span class="d">diversification it brings</span></div>
+        <div class="kpi"><span class="k">Opponent</span><span class="v">${fmt.money(s.opponent)}</span><span class="d">costs and stand-alone risk</span></div>
+        <div class="kpi"><span class="k">Own strength used</span><span class="v">${fmt.num(s.self_added_damage)}</span><span class="d">of ${fmt.num(g.life_left)} left</span></div>
+        <div class="kpi"><span class="k">Chance of breaking</span><span class="v">${fmt.pct(g.break_probability_after, 0)}</span><span class="d">now ${fmt.pct(g.break_probability_now, 0)}</span></div></div>
+        <div class="row">${Object.entries(g.tests).map(([k, ok]) => `<span class="pill ${ok ? "pass" : "breach"}">${ok ? "✓" : "✗"} ${h(k.replace(/_/g, " "))}</span>`).join("")}</div>`;
+    } catch (e) { $("#gate-out").innerHTML = fail(e); }
+  };
+  if (DEMO) el.querySelectorAll("#gate-chips .chip").forEach((b) => b.addEventListener("click", () => weigh(b.dataset.i, +b.dataset.q)));
+  else {
+    $("#g-inst").value = GATE_PRESETS[1][0];
+    $("#gate-form").addEventListener("submit", (e) => { e.preventDefault(); weigh($("#g-inst").value, +$("#g-qty").value); });
+    $("#ax-prof").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await api("/api/achchu/profile", { method: "PUT", body: { stated_tolerance: +$("#ax-tol").value / 100, equanimity: +$("#ax-eq").value, reserves: +$("#ax-res").value, monthly_outflow: +$("#ax-out").value } });
+        rendered.achchu = false; el.innerHTML = head("Module 9", v.name, v.q) + `<p class="skeleton">Recalculating…</p>`; await renderAchchu(el, v); rendered.achchu = true;
+      } catch (err) { el.insertAdjacentHTML("afterbegin", fail(err)); }
+    });
+  }
+  weigh(...GATE_PRESETS[1]);
 }
 
 /* 8 ---------------------------------------------------------------- live */
@@ -708,7 +790,7 @@ class ServerEngine {
   shock(s) { if (this.sock && this.sock.readyState === 1) this.sock.send(JSON.stringify({ action: "shock", ...s })); }
 }
 
-/* A faithful browser copy of openportfolio/realtime: SimulatedFeed + StreamProcessor. */
+/* A faithful browser copy of samatva/realtime: SimulatedFeed + StreamProcessor. */
 class BrowserEngine {
   constructor(meta) {
     this.meta = meta; const n = meta.instruments.length; this.n = n;
@@ -777,7 +859,7 @@ function cholesky(A) { const n = A.length; const L = A.map(() => new Array(n).fi
   return L; }
 
 /* 9 ---------------------------------------------------------------- ask */
-const SUGGESTED = ["How much could I lose?", "Where is my risk coming from?", "What if equities fall 20%?", "What if rates rise 1%?", "How am I doing against the benchmark?",
+const SUGGESTED = ["How much could I lose?", "How close am I to breaking?", "Where is my risk coming from?", "What if equities fall 20%?", "What if rates rise 1%?", "How am I doing against the benchmark?",
   "Why did the portfolio move today?", "How liquid is the portfolio?", "Am I breaking any rules?", "What happens in a 2008 crisis?", "What does Sharpe ratio mean?"];
 async function renderAsk(el, v) {
   el.innerHTML = head("AI explainer", v.name, v.q) + `
@@ -820,7 +902,7 @@ function jsScenario(b) {
 const INTENTS = [
   [/\b(2008|financial crisis)\b/, "What happens in a 2008 crisis?"], [/\b(2022|inflation)\b/, "What happens in a 2022-style inflation shock?"],
   [/\bmean|\bdefin|\bwhat is\b/, null], [/\bwhy\b.*\b(down|up|fell|rose|drop|move|moved|change)\b|\btoday\b|\byesterday\b/, "Why did the portfolio move today?"],
-  [/\bcomplian|\brule|\bbreach|\blimit/, "Am I breaking any rules?"], [/\bprivate\b|\bcommitment|\bcapital call|\bunfunded/, "What about my private funds?"],
+  [/\bcomplian|\brule|\bbreach|\blimit/, "Am I breaking any rules?"], [/\bbreak(ing)?\b|\bgive up\b|\bgiving up\b|\bpanic|\bstrain|\bfatigue|\baxle|\bachchu|\bhow (much|close).*\b(take|bear|stand|handle)|\bcan i (take|bear|stand|handle)/, "How close am I to breaking?"], [/\bprivate\b|\bcommitment|\bcapital call|\bunfunded/, "What about my private funds?"],
   [/\bliquid|\bsell (it|everything|quickly)|\bhow (fast|quickly)/, "How liquid is the portfolio?"], [/\binterest rate|\brates?\b|\bduration\b|\bbond|\bdv01/, "How exposed am I to interest rates?"],
   [/\bwhere\b.*\brisk|\brisk\b.*\b(from|coming|driver|biggest|most)|\bcontribut/, "Where is my risk coming from?"],
   [/\bconcentrat|\bdiversif|\blargest|\bbiggest holding|\btop holding/, "Is the portfolio concentrated?"],
@@ -852,7 +934,7 @@ function jsExplain(question) {
       const map = { sharpe: "What does Sharpe ratio mean?", var: "What is VaR?", "value at risk": "What is VaR?", drawdown: "What is drawdown?", duration: "What is duration?", tvpi: "What is TVPI?" };
       return DEMO.answers[map[term]]; }
   }
-  return { answer: "I am not sure how to answer that yet. Try asking: 'How much could I lose?', 'Where is my risk coming from?', 'What if equities fall 20%?', 'How am I doing against the benchmark?', 'How liquid is the portfolio?' or 'Am I breaking any rules?'", sources: [] };
+  return { answer: "I am not sure how to answer that yet. Try asking: 'How much could I lose?', 'Where is my risk coming from?', 'What if equities fall 20%?', 'How am I doing against the benchmark?', 'How liquid is the portfolio?', 'Am I breaking any rules?' or 'How close am I to giving up?'", sources: [] };
 }
 const demoOrders = [];
 function demoHandler(method, path, opts) {
@@ -860,6 +942,11 @@ function demoHandler(method, path, opts) {
   if (method === "POST" && path === "/api/trading/optimise") return DEMO["POST /api/trading/optimise " + opts.body.method];
   if (method === "POST" && path === "/api/trading/rebalance") return DEMO["POST /api/trading/rebalance " + opts.key];
   if (method === "GET" && path.startsWith("/api/explain?q=")) return jsExplain(decodeURIComponent(path.slice(15)));
+  if (method === "POST" && path === "/api/achchu/gate") {
+    const k = `POST /api/achchu/gate ${opts.body.instrument_id} ${opts.body.quantity}`;
+    if (k in DEMO) return DEMO[k];
+    throw new Error("In this demo, choose one of the prepared trades. The full platform weighs any trade: samatva serve");
+  }
   if (path === "/api/trading/orders") {
     if (method === "POST") { const b = opts.body;
       const blocked = b.instrument_id === "EMB" && b.side === "BUY";

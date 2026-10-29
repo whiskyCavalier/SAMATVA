@@ -2,9 +2,9 @@
 
 ```bash
 pip install -e ".[dev]"
-pytest                                        # 135 offline tests, about two minutes
+pytest                                        # 159 offline tests, about two and a half minutes
 pytest tests/test_realtime_showcase.py -s     # the real-time measurements, printed
-OPP_RUN_LIVE_TESTS=1 pytest -m live -s        # 5 online tests against real providers
+SAMATVA_RUN_LIVE_TESTS=1 pytest -m live -s        # 5 online tests against real providers
 ```
 
 In finance, a number that is confidently wrong does more harm than no number at all. The tests are therefore written to check *values*, not merely that code runs. Where possible, each method is checked against a figure you could work out by hand or find in a textbook.
@@ -17,6 +17,7 @@ In finance, a number that is confidently wrong does more harm than no number at 
 | `test_analytics.py` | 20 | Bond prices match textbook values (5-year 5% bond at 6% = 95.7349); yields round-trip; DV01 agrees with duration; convexity improves the estimate; VaR and ES match hand calculations; Monte Carlo converges to the formula; drawdown dates are right; risk contributions add up exactly; factor regression recovers known exposures; TWR ignores cash flows; XIRR gives 10% on a 10% investment; Brinson effects sum to the active return |
 | `test_modules.py` | 45 | Each module on the sample portfolio: valuations reconcile; look-through splits the fund; four VaR methods agree within 25%; DV01 matches an exact 1 bp scenario; an equity shock hits only equities; compliance finds the known breach and blocks a tobacco trade; optimisers respect their constraints; risk parity equalises risk; private-fund maths matches hand-worked funds; the explainer routes nine kinds of question correctly; reports are valid PDF and Excel files |
 | `test_api.py` | 26 | Every GET endpoint answers; bad input gets a clear message; scenario, optimisation, rebalancing, ordering, pre-trade, rule replacement, downloads and import all work through HTTP |
+| `test_achchu.py` | 24 | Rainflow counting matches the ASTM worked example and an independent implementation (`rainflow` package); the hand-worked damage examples (0.64, 1.31, 0.44, 0.37); falls below endurance cost nothing; 126 days of calm at a 126-day half-life halve the damage; the fast simulation path matches the reference exactly; calibration matches synthetic events and recovers the healing rate; capacity from means and mind; load shares sum to one; the chance of breaking falls as capacity rises; the gate blocks a huge buy, allows a risk-reducing sale, waits outside home ground and finds a safe size; the API, profile validation, and order rejection on a block |
 | `test_realtime_showcase.py` | 14 | See below |
 | `test_live_feeds.py` | 21 | Offline: `.env` parsing and key masking; each provider's messages parsed correctly; local servers that copy the Finnhub, Alpaca and Coinbase protocols prove the round trip, that a bad key stops at once without retrying, that a dropped connection reconnects, and that the full engine runs on a WebSocket feed; real-portfolio files load; history falls back between sources |
 | `test_live_online.py` | 5 | Online, opt-in: real Coinbase prices, a real portfolio built from Yahoo history, ten seconds of the full engine on live crypto, plus Finnhub and the Alpaca test stream when keys are set |

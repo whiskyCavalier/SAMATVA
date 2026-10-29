@@ -9,13 +9,13 @@ Thank you for helping. The project values three things above all: numbers that a
 
 ## When you change the maths
 
-- Keep calculations in `openportfolio/analytics` as pure functions: numbers in, numbers out.
+- Keep calculations in `samatva/analytics` as pure functions: numbers in, numbers out.
 - Add a test that checks the result against a value you can work out by hand or cite from a textbook, and show the working in a comment.
 - Update `docs/methodology.md` with the method, its assumptions and its limits.
 
 ## When you add a number to the screen
 
-Add its label, plain meaning and formula to `openportfolio/glossary.py` and return it with `metric(...)`. No number should reach a user without its meaning.
+Add its label, plain meaning and formula to `samatva/glossary.py` and return it with `metric(...)`. No number should reach a user without its meaning.
 
 ## Writing style
 

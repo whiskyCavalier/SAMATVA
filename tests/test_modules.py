@@ -5,11 +5,11 @@ import pandas as pd
 import pytest
 from openpyxl import load_workbook
 
-from openportfolio.analytics import risk as R
-from openportfolio.modules import compliance as C
-from openportfolio.modules import hub, performance as P, private_assets as PA, reports
-from openportfolio.modules import risk_dashboard as RD, scenarios as S, trading as T
-from openportfolio.modules.explainer import Explainer
+from samatva.analytics import risk as R
+from samatva.modules import compliance as C
+from samatva.modules import hub, performance as P, private_assets as PA, reports
+from samatva.modules import risk_dashboard as RD, scenarios as S, trading as T
+from samatva.modules.explainer import Explainer
 
 
 # --------------------------------------------------------------------------- 1. hub

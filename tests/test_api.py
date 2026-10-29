@@ -3,8 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from openportfolio.api.app import app, state
-from openportfolio.workspace import Workspace
+from samatva.api.app import app, state
+from samatva.workspace import Workspace
 
 
 @pytest.fixture(scope="module")
@@ -31,7 +31,7 @@ def test_get_endpoints(client, path):
 
 def test_dashboard_page(client):
     r = client.get("/")
-    assert r.status_code == 200 and r.text.startswith("<!doctype html>") and "Open Portfolio Platform" in r.text
+    assert r.status_code == 200 and r.text.startswith("<!doctype html>") and "Samatva" in r.text
 
 
 def test_bad_input_gets_a_clear_message(client):
@@ -58,7 +58,7 @@ def test_pretrade_and_rule_replacement(client):
     assert r.json()["rules"] == 1
     assert client.get("/api/compliance").json()["counts"]["breach"] == 0
     client.put("/api/compliance/rules", json=[{"id": "bad", "type": "nonsense", "limit": 1}])
-    from openportfolio.modules.compliance import default_rulebook
+    from samatva.modules.compliance import default_rulebook
 
     state.rulebook = default_rulebook()
 

@@ -6,7 +6,7 @@ This guide covers what you need to stream real prices through the platform, wher
 
 | You need | Why | Where it goes |
 |---|---|---|
-| **1. A data provider** | Somewhere for live prices to come from | `--provider` option, or `OPP_DATA_PROVIDER` in `.env` |
+| **1. A data provider** | Somewhere for live prices to come from | `--provider` option, or `SAMATVA_DATA_PROVIDER` in `.env` |
 | **2. An API key** (for most providers) | Proves to the provider who you are | `.env` file in the project folder (see below) |
 | **3. A portfolio of real instruments** | The sample fund's companies are fictional, so no exchange trades them | A CSV file, for example `examples/live_stocks.csv` |
 | **4. Each provider's symbol for each holding** | Providers spell instruments differently (BTC-USD, BINANCE:BTCUSDT, BTC/USD) | Columns in that CSV |
@@ -32,7 +32,7 @@ Free keys:
 
 ## Where the API key goes
 
-Keys go in a file named **`.env`** in the folder you run `opp` from (normally the project folder). The platform reads it automatically every time it starts.
+Keys go in a file named **`.env`** in the folder you run `samatva` from (normally the project folder). The platform reads it automatically every time it starts.
 
 **Step 1.** Copy the template:
 
@@ -43,8 +43,8 @@ cp .env.example .env
 **Step 2.** Open `.env` in a text editor and paste your keys after the `=` signs. No quotes or spaces are needed:
 
 ```bash
-OPP_DATA_PROVIDER=finnhub
-OPP_PORTFOLIO_FILE=examples/live_stocks.csv
+SAMATVA_DATA_PROVIDER=finnhub
+SAMATVA_PORTFOLIO_FILE=examples/live_stocks.csv
 
 FINNHUB_API_KEY=your-finnhub-key-here
 
@@ -56,7 +56,7 @@ ALPACA_FEED=iex
 **Step 3.** Check that the keys were found:
 
 ```bash
-opp keys
+samatva keys
 ```
 
 ```
@@ -77,11 +77,11 @@ Keys are always shown masked: the first and last four characters only.
 | `ALPACA_API_SECRET_KEY` | the same | Only for Alpaca |
 | `ALPACA_FEED` | `alpaca`: `iex` (free) or `sip` (paid) | No, defaults to `iex` |
 | `ANTHROPIC_API_KEY` | The explainer's optional language model | No |
-| `OPP_DATA_PROVIDER` | Which feed the server uses | No, defaults to `simulated` |
-| `OPP_PORTFOLIO_FILE` | Which portfolio the server streams | No, defaults to the sample fund |
-| `OPP_BENCHMARK` | Benchmark ticker for beta and tracking error, e.g. `SPY` | No |
-| `OPP_STALE_SECONDS` | Seconds without a trade before an instrument is flagged | No, 120 for live feeds |
-| `OPP_POLL_SECONDS` | How often the `yahoo` provider polls | No, 5 |
+| `SAMATVA_DATA_PROVIDER` | Which feed the server uses | No, defaults to `simulated` |
+| `SAMATVA_PORTFOLIO_FILE` | Which portfolio the server streams | No, defaults to the sample fund |
+| `SAMATVA_BENCHMARK` | Benchmark ticker for beta and tracking error, e.g. `SPY` | No |
+| `SAMATVA_STALE_SECONDS` | Seconds without a trade before an instrument is flagged | No, 120 for live feeds |
+| `SAMATVA_POLL_SECONDS` | How often the `yahoo` provider polls | No, 5 |
 
 ### Other places a key can go
 
@@ -134,7 +134,7 @@ Run them from the project folder.
 **Test 1: plumbing, with no key** (any time of day).
 
 ```bash
-opp live --portfolio examples/live_crypto.csv --provider coinbase --seconds 30
+samatva live --portfolio examples/live_crypto.csv --provider coinbase --seconds 30
 ```
 
 You should see live Coinbase prices moving the portfolio's value every second:
@@ -149,7 +149,7 @@ Live crypto is worth $242,928 across 4 holdings, split Crypto 96%, Cash 4%.
 **Test 2: your keys.**
 
 ```bash
-opp keys --test
+samatva keys --test
 ```
 
 This connects briefly to Coinbase and to each provider you have keys for. With a valid key, the line reads `PASS` and gives the time until the first price arrived:
@@ -168,8 +168,8 @@ A rejected key gives a clear failure rather than endless retries:
 **Test 3: live stocks**, during US market hours (9:30–16:00 New York time, Monday to Friday):
 
 ```bash
-opp live --portfolio examples/live_stocks.csv --provider finnhub --benchmark SPY --seconds 60
-opp live --portfolio examples/live_stocks.csv --provider alpaca  --benchmark SPY --seconds 60
+samatva live --portfolio examples/live_stocks.csv --provider finnhub --benchmark SPY --seconds 60
+samatva live --portfolio examples/live_stocks.csv --provider alpaca  --benchmark SPY --seconds 60
 ```
 
 Outside market hours, use `--provider alpaca-test`. It proves the keys and the pipeline work, but only one holding moves, driven by the FAKEPACA test symbol.
@@ -177,7 +177,7 @@ Outside market hours, use `--provider alpaca-test`. It proves the keys and the p
 **Test 4: the dashboard on live data.**
 
 ```bash
-opp serve --portfolio examples/live_stocks.csv --provider finnhub --benchmark SPY
+samatva serve --portfolio examples/live_stocks.csv --provider finnhub --benchmark SPY
 ```
 
 Open http://localhost:8000/#live. The source line under the controls shows the provider, its connection status, the reconnect count and the feed delay. Every other module (risk, scenarios, compliance and so on) now works on your real portfolio. The *Inject an event* buttons are hidden, because you cannot crash a real market.
@@ -185,10 +185,10 @@ Open http://localhost:8000/#live. The source line under the controls shows the p
 **Test 5: the automated online tests.**
 
 ```bash
-OPP_RUN_LIVE_TESTS=1 pytest -m live -s
+SAMATVA_RUN_LIVE_TESTS=1 pytest -m live -s
 ```
 
-These connect to Coinbase, build a real portfolio from Yahoo history, and run the full engine on live prices for ten seconds. They also cover Finnhub and the Alpaca test stream when those keys are set. Without `OPP_RUN_LIVE_TESTS=1` they are skipped, so the normal test suite never needs the internet or a key.
+These connect to Coinbase, build a real portfolio from Yahoo history, and run the full engine on live prices for ten seconds. They also cover Finnhub and the Alpaca test stream when those keys are set. Without `SAMATVA_RUN_LIVE_TESTS=1` they are skipped, so the normal test suite never needs the internet or a key.
 
 ## What "day P/L" means on live data
 
@@ -198,15 +198,15 @@ The portfolio opens at the **last completed daily close** from history. Live pri
 
 | What you see | Likely cause | What to do |
 |---|---|---|
-| `needs FINNHUB_API_KEY` | The key is not set | Add it to `.env` and run `opp keys` |
+| `needs FINNHUB_API_KEY` | The key is not set | Add it to `.env` and run `samatva keys` |
 | `HTTP 401` from Finnhub | The key is wrong or revoked | Copy it again from the Finnhub dashboard |
 | Alpaca `code 402` | Wrong key or secret, or the two belong to different accounts | Regenerate both together |
 | Alpaca `code 406` | Another program is already connected with these keys (Alpaca allows one stream at a time) | Close the other connection |
 | Alpaca `code 409` | Your plan does not include the chosen feed | Set `ALPACA_FEED=iex` |
 | Connected, but no ticks | The market is closed, or a symbol is spelled wrongly | Try crypto or `alpaca-test`; check the symbol columns |
 | `No holdings have a symbol for the 'coinbase' feed` | The portfolio has no `coinbase` column | Add Coinbase product ids such as BTC-USD |
-| `HTTP Error 429` from Yahoo | Yahoo is throttling requests | Wait a minute. History is cached in `.opp_cache/` for 12 hours, so retries are cheap, and crypto falls back to Coinbase automatically |
-| Many stale alerts | Thinly traded instruments | Raise `OPP_STALE_SECONDS` |
+| `HTTP Error 429` from Yahoo | Yahoo is throttling requests | Wait a minute. History is cached in `.samatva_cache/` for 12 hours, so retries are cheap, and crypto falls back to Coinbase automatically |
+| Many stale alerts | Thinly traded instruments | Raise `SAMATVA_STALE_SECONDS` |
 | `reconnecting in 4s` | The network or the provider dropped the connection | No action needed; the feed reconnects with back-off (1, 2, 4 … 30 seconds) |
 
 ## Licensing

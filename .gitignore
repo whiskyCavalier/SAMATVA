@@ -8,4 +8,4 @@ dist/
 .env
 .env.*
 !.env.example
-.opp_cache/
+.samatva_cache/

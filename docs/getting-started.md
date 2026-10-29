@@ -10,7 +10,7 @@ You need Python 3.10 or later. From the project folder:
 pip install -e .
 ```
 
-That installs the platform and the `opp` command. To use a language model in the explainer as well, install the optional extra and set your key:
+That installs the platform and the `samatva` command. To use a language model in the explainer as well, install the optional extra and set your key:
 
 ```bash
 pip install -e ".[ai]"
@@ -22,7 +22,7 @@ If you prefer containers, `docker compose up` builds and starts everything. No P
 ## 2. Take the tour
 
 ```bash
-opp demo
+samatva demo
 ```
 
 This prints a short report from every module, using the sample portfolio: a $10 million balanced fund of eleven holdings across shares, bonds, property and gold. Reading it end to end is the quickest way to see what the platform does.
@@ -30,7 +30,7 @@ This prints a short report from every module, using the sample portfolio: a $10 
 ## 3. Open the dashboard
 
 ```bash
-opp serve
+samatva serve
 ```
 
 Open http://localhost:8000. The left-hand rail lists the modules. Each opens with the question it answers, then gives the summary first and the detail below. The **Live stream** module starts streaming straight away.
@@ -41,12 +41,12 @@ Useful settings, all optional. Put them in a `.env` file in the project folder (
 
 | Variable | Default | Effect |
 |---|---|---|
-| `OPP_LIVE` | `1` | Set to `0` to stop the live engine starting with the server |
-| `OPP_TICKS_PER_SECOND` | `500` | Speed of the simulated price feed |
+| `SAMATVA_LIVE` | `1` | Set to `0` to stop the live engine starting with the server |
+| `SAMATVA_TICKS_PER_SECOND` | `500` | Speed of the simulated price feed |
 | `ANTHROPIC_API_KEY` | not set | Lets the explainer pass unusual questions to a language model |
-| `OPP_DATA_PROVIDER` | `simulated` | Where live prices come from; see [Live market data](live-data.md) |
-| `OPP_PORTFOLIO_FILE` | not set | A CSV of real instruments to analyse and stream |
-| `OPP_LLM_MODEL` | `claude-sonnet-5-5` | The model the explainer uses when a key is set |
+| `SAMATVA_DATA_PROVIDER` | `simulated` | Where live prices come from; see [Live market data](live-data.md) |
+| `SAMATVA_PORTFOLIO_FILE` | not set | A CSV of real instruments to analyse and stream |
+| `SAMATVA_LLM_MODEL` | `claude-sonnet-5-5` | The model the explainer uses when a key is set |
 
 ## 4. Bring your own holdings
 
@@ -63,7 +63,7 @@ CASH,250000,
 Column names are matched loosely, so `Ticker`, `ISIN`, `CUSIP`, `FIGI` or `Symbol` all identify the instrument, and `Shares`, `Quantity`, `Units` or `Nominal` all give the amount. A row whose identifier is `CASH` becomes cash. An optional cost column (`Avg Cost`, `Cost Price`, `Book Price`) enables unrealised gains. Bonds are quoted per 100 of face value, so a quantity of 15,000 means 1.5 million of face value.
 
 ```bash
-opp import my_holdings.csv
+samatva import my_holdings.csv
 ```
 
 The importer tells you how many rows it matched and lists any it could not, so nothing is dropped without your knowledge. You can also import through the dashboard's API with `POST /api/import/holdings`.
@@ -73,9 +73,9 @@ The importer tells you how many rows it matched and lists any it could not, so n
 Real use means real instruments and prices. In Python:
 
 ```python
-from openportfolio.data import Instrument, SecurityMaster, MarketData
-from openportfolio.data.connectors import load_holdings, load_prices
-from openportfolio.workspace import Workspace
+from samatva.data import Instrument, SecurityMaster, MarketData
+from samatva.data.connectors import load_holdings, load_prices
+from samatva.workspace import Workspace
 import pandas as pd
 
 master = SecurityMaster([
@@ -98,12 +98,12 @@ Two optional extras improve the analysis:
 - a **benchmark** series in `MarketData(benchmark=...)` enables beta, tracking error and the information ratio;
 - **factor returns** in `MarketData(factors=...)` enable factor exposures and factor scenarios.
 
-The quickest route to real instruments is a portfolio CSV with symbol columns, which `opp live` and `opp serve --portfolio` load directly, downloading history for you. [Live market data](live-data.md) shows the format. For free price data in code, `YahooQuoteSource` (delayed quotes) and `FredSeriesSource` (interest rates and other economic series) are included in `openportfolio.data.connectors`. Licensed feeds plug in through the same small interface and use your own licence; the platform ships connectors, never data.
+The quickest route to real instruments is a portfolio CSV with symbol columns, which `samatva live` and `samatva serve --portfolio` load directly, downloading history for you. [Live market data](live-data.md) shows the format. For free price data in code, `YahooQuoteSource` (delayed quotes) and `FredSeriesSource` (interest rates and other economic series) are included in `samatva.data.connectors`. Licensed feeds plug in through the same small interface and use your own licence; the platform ships connectors, never data.
 
 ## 6. Check your data before trusting the numbers
 
 ```python
-from openportfolio.data import quality
+from samatva.data import quality
 for issue in quality.check(portfolio, master, market):
     print(issue.severity, issue.message)
 ```
@@ -113,7 +113,7 @@ This reports holdings missing from the security master, missing or stale prices,
 ## 7. Produce a report
 
 ```bash
-opp report --pdf board-pack.pdf --xlsx board-pack.xlsx
+samatva report --pdf board-pack.pdf --xlsx board-pack.xlsx
 ```
 
 The PDF is written for reading: commentary, charts and every key figure with its meaning. The workbook is written for working: one sheet per module, with every number.
@@ -123,7 +123,7 @@ The PDF is written for reading: commentary, charts and every key figure with its
 ```bash
 pip install -e ".[dev]"
 pytest                                         # 135 offline tests, about two minutes
-OPP_RUN_LIVE_TESTS=1 pytest -m live -s         # 5 online tests against real providers
+SAMATVA_RUN_LIVE_TESTS=1 pytest -m live -s         # 5 online tests against real providers
 pytest tests/test_realtime_showcase.py -s      # with the real-time measurements printed
 ```
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0 — 29 October 2026
+
+The platform is renamed **Samatva** (Self-Aware, Multi-Asset, Transparent and Verifiable Analytics) and gains its ninth module, **Achchu**.
+
+- **Achchu (the axle)**: measures how close an investor is to abandoning their plan, and checks trades before they are placed. Built from the Thirukkural and the Bhagavad Gita:
+  - capacity as the weaker of means and mind (Kural 478, Gita 2.56);
+  - load shares on falling days (Kural 475);
+  - rainflow counting (ASTM E1049-85) and Palmgren–Miner damage, with an endurance threshold set by equanimity (Gita 2.38) and healing set by discipline (Kural 621, Gita 6.35);
+  - the chance of breaking within a year, by block-bootstrap simulation that carries today's open fall forward;
+  - a four-strengths trade gate (Kural 471) with a ceiling on the chance of breaking (Kural 476), reflection before acting (Kural 467, Gita 18.63) and a search for the largest safe size;
+  - home-ground timing from four market states (Kurals 481, 490 and 495, Gita 2.47);
+  - calibration of the settings to the dates an investor actually gave up.
+- **Interfaces**: `GET /api/achchu`, `POST /api/achchu/gate`, `GET` and `PUT /api/achchu/profile`; a dashboard screen (module 9); `samatva achchu`; an explainer intent (*How close am I to breaking?*). Orders are checked by Achchu, and rejected when it blocks.
+- **Renamed**: the package `openportfolio` is now `samatva`, the command `opp` is now `samatva`, and environment variables beginning `OPP_` now begin `SAMATVA_`. See [docs/versions.md](docs/versions.md).
+- **Tests**: 24 new tests, including a check of the rainflow counter against an independent implementation and the hand-worked damage examples. 159 offline tests in all.
+- **Docs**: [docs/achchu.md](docs/achchu.md) and [docs/versions.md](docs/versions.md); every document updated.
+
+
 ## 1.1.0 — 28 October 2026
 
 Live market data.

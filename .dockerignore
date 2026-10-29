@@ -1,7 +1,7 @@
 .env
 .env.*
 !.env.example
-.opp_cache/
+.samatva_cache/
 __pycache__/
 tests/
 *.pdf

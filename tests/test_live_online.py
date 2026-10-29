@@ -1,6 +1,6 @@
 """Online tests against the real providers. Skipped unless you ask for them.
 
-    OPP_RUN_LIVE_TESTS=1 pytest -m live -s
+    SAMATVA_RUN_LIVE_TESTS=1 pytest -m live -s
 
 Each test needs internet access. Coinbase and Yahoo need no key. The Finnhub
 and Alpaca tests run only when their keys are set in .env or the environment,
@@ -16,11 +16,11 @@ import time
 
 import pytest
 
-from openportfolio.config import load_env
+from samatva.config import load_env
 
 load_env()
-RUN = os.environ.get("OPP_RUN_LIVE_TESTS") == "1"
-pytestmark = [pytest.mark.live, pytest.mark.skipif(not RUN, reason="set OPP_RUN_LIVE_TESTS=1 to run online tests")]
+RUN = os.environ.get("SAMATVA_RUN_LIVE_TESTS") == "1"
+pytestmark = [pytest.mark.live, pytest.mark.skipif(not RUN, reason="set SAMATVA_RUN_LIVE_TESTS=1 to run online tests")]
 
 
 def _first_ticks(feed, n=3, timeout=30.0):
@@ -37,7 +37,7 @@ def _first_ticks(feed, n=3, timeout=30.0):
 
 
 def test_coinbase_streams_real_prices():
-    from openportfolio.realtime.providers import CoinbaseFeed
+    from samatva.realtime.providers import CoinbaseFeed
 
     ticks, secs = _first_ticks(CoinbaseFeed({"BTC-USD": "BTC", "ETH-USD": "ETH"}))
     print(f"\n  Coinbase: {len(ticks)} ticks in {secs:.1f} s; BTC-USD around {ticks[0].price:,.2f}")
@@ -46,7 +46,7 @@ def test_coinbase_streams_real_prices():
 
 @pytest.mark.skipif(not os.environ.get("FINNHUB_API_KEY"), reason="FINNHUB_API_KEY not set")
 def test_finnhub_streams_real_trades():
-    from openportfolio.realtime.providers import FinnhubFeed
+    from samatva.realtime.providers import FinnhubFeed
 
     ticks, secs = _first_ticks(FinnhubFeed({"BINANCE:BTCUSDT": "BTC", "AAPL": "AAPL"}), timeout=45)
     print(f"\n  Finnhub: {len(ticks)} trades in {secs:.1f} s")
@@ -56,7 +56,7 @@ def test_finnhub_streams_real_trades():
 @pytest.mark.skipif(not (os.environ.get("ALPACA_API_KEY_ID") and os.environ.get("ALPACA_API_SECRET_KEY")),
                     reason="Alpaca keys not set")
 def test_alpaca_test_stream():
-    from openportfolio.realtime.providers import AlpacaFeed
+    from samatva.realtime.providers import AlpacaFeed
 
     feed = AlpacaFeed({"X": "X"}, feed="test", proxy_instrument="X")
     ticks, secs = _first_ticks(feed, timeout=45)
@@ -65,8 +65,8 @@ def test_alpaca_test_stream():
 
 
 def test_real_portfolio_builds_from_yahoo_history():
-    from openportfolio.data.live_universe import build_live_workspace
-    from openportfolio.modules import hub
+    from samatva.data.live_universe import build_live_workspace
+    from samatva.modules import hub
 
     ws = build_live_workspace("examples/live_stocks.csv", benchmark="SPY")
     print("\n  " + hub.describe(ws))
@@ -74,9 +74,9 @@ def test_real_portfolio_builds_from_yahoo_history():
 
 
 def test_full_engine_on_real_coinbase_prices():
-    from openportfolio.data.live_universe import build_live_workspace
-    from openportfolio.realtime import AlertConfig, RealTimeEngine
-    from openportfolio.realtime.providers import make_feed
+    from samatva.data.live_universe import build_live_workspace
+    from samatva.realtime import AlertConfig, RealTimeEngine
+    from samatva.realtime.providers import make_feed
 
     ws = build_live_workspace("examples/live_crypto.csv")
 

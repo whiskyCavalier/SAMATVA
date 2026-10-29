@@ -3,9 +3,9 @@
 Run from the project folder:  python examples/quickstart.py
 """
 
-from openportfolio.modules import compliance, hub, performance, risk_dashboard, scenarios, trading
-from openportfolio.modules.explainer import Explainer
-from openportfolio.workspace import Workspace
+from samatva.modules import compliance, hub, performance, risk_dashboard, scenarios, trading
+from samatva.modules.explainer import Explainer
+from samatva.workspace import Workspace
 
 ws = Workspace.sample()  # swap in your own: Workspace(master, market_data, portfolio)
 

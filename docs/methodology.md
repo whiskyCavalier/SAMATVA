@@ -131,3 +131,9 @@ See [realtime.md](realtime.md). In brief: the live NAV is maintained incremental
 - There is no treatment of derivatives (options, futures, swaps), short positions or leverage beyond what simple negative quantities imply.
 - Attribution is single-period and covers asset classes only.
 - Bond analytics cover plain fixed-coupon bonds.
+
+---
+
+## Achchu: investor fatigue
+
+The axle algorithm (capacity, rainflow counting, Palmgren–Miner damage with an endurance threshold and healing, the chance of breaking, the four-strengths trade gate and home ground) has its own document, with every formula, a worked example and its limits: [Achchu](achchu.md).

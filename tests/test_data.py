@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from openportfolio.data import connectors, quality
-from openportfolio.data.market_data import MarketData
-from openportfolio.data.models import Instrument, Portfolio, Position
-from openportfolio.data.sample import generate_market_data, sample_instruments
-from openportfolio.data.security_master import SecurityMaster
+from samatva.data import connectors, quality
+from samatva.data.market_data import MarketData
+from samatva.data.models import Instrument, Portfolio, Position
+from samatva.data.sample import generate_market_data, sample_instruments
+from samatva.data.security_master import SecurityMaster
 
 
 def test_instrument_rejects_unknown_asset_class():

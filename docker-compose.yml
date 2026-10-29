@@ -10,4 +10,4 @@ services:
     volumes:
       - ./examples:/app/examples:ro
     environment:
-      OPP_LIVE: "1"
+      SAMATVA_LIVE: "1"

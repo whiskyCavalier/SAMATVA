@@ -26,7 +26,7 @@ import time
 import numpy as np
 import pytest
 
-from openportfolio.realtime import AlertConfig, RealTimeEngine, SimulatedFeed, StreamProcessor, Tick, benchmark
+from samatva.realtime import AlertConfig, RealTimeEngine, SimulatedFeed, StreamProcessor, Tick, benchmark
 
 REPORT: dict = {}
 
@@ -204,7 +204,7 @@ def test_engine_streams_live_snapshots(ws):
 def test_websocket_api_streams_and_accepts_shocks():
     from fastapi.testclient import TestClient
 
-    from openportfolio.api.app import app, state
+    from samatva.api.app import app, state
 
     with TestClient(app) as client:
         with client.websocket_connect("/ws/live") as sock:

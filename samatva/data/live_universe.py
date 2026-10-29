@@ -78,13 +78,13 @@ def read_portfolio_file(path: str | Path, base_currency: str = "USD") -> Tuple[S
 class YahooHistory:
     """Daily closes and volumes from Yahoo Finance's public chart endpoint (no key).
 
-    Results are cached in ``.opp_cache/`` for the rest of the day, so repeated
+    Results are cached in ``.samatva_cache/`` for the rest of the day, so repeated
     runs start instantly and do not hammer the service.
     """
 
     URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range={range}&interval=1d"
 
-    def __init__(self, range_: str = "2y", cache_dir: str | Path = ".opp_cache", timeout: float = 15.0) -> None:
+    def __init__(self, range_: str = "2y", cache_dir: str | Path = ".samatva_cache", timeout: float = 15.0) -> None:
         self.range = range_
         self.cache = Path(cache_dir)
         self.timeout = timeout
