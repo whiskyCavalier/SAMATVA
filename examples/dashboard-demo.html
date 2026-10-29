@@ -1,0 +1,881 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body><title>Open Portfolio Platform</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a working terminal — module rail on the left (a scrolling strip on phones), one module at a time on the right, summary before detail. */
+:root {
+  --bg: #f3f5f4;
+  --surface: #ffffff;
+  --sunk: #eaeeec;
+  --ink: #142221;
+  --muted: #586866;
+  --line: #d9e0de;
+  --accent: #0b6b67;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcecea;
+  --good: #2a7a4b;
+  --good-soft: #dff0e5;
+  --warn: #9a6200;
+  --warn-soft: #f6ead2;
+  --crit: #b1352e;
+  --crit-soft: #f7e0de;
+  --bench: #9aa8a5;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1413; --surface: #141e1d; --sunk: #0f1817; --ink: #e1ebe9; --muted: #92a4a1; --line: #24322f;
+    --accent: #4fbab2; --accent-ink: #062120; --accent-soft: #17312e; --good: #5ec28b; --good-soft: #15301f;
+    --warn: #e2a640; --warn-soft: #33270f; --crit: #ef6e64; --crit-soft: #3a1b18; --bench: #66807b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1413; --surface: #141e1d; --sunk: #0f1817; --ink: #e1ebe9; --muted: #92a4a1; --line: #24322f;
+  --accent: #4fbab2; --accent-ink: #062120; --accent-soft: #17312e; --good: #5ec28b; --good-soft: #15301f;
+  --warn: #e2a640; --warn-soft: #33270f; --crit: #ef6e64; --crit-soft: #3a1b18; --bench: #66807b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); }
+body { color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5; margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; height: 100vh; overflow-y: auto;
+  border-right: 1px solid var(--line); background: var(--surface);
+  padding-block: 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 12px; }
+.brand { font-family: var(--f-display); font-weight: 600; font-size: 17px; line-height: 1.2; letter-spacing: .01em; }
+.brand small { display: block; font-family: var(--f-body); font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.nav { display: flex; flex-direction: column; gap: 2px; margin-top: 22px; }
+.nav a { display: flex; align-items: baseline; gap: 10px; padding: 7px 10px; border-radius: var(--r); color: var(--ink);
+  text-decoration: none; font-weight: 500; }
+.nav a .q { display: none; }
+.nav a span.n { font-family: var(--f-mono); font-size: 11px; color: var(--muted); width: 14px; }
+.nav a:hover { background: var(--sunk); }
+.nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.nav a[aria-current="page"] span.n { color: var(--accent); }
+.rail .mode { margin-top: 22px; font-size: 12px; color: var(--muted); }
+
+main { min-width: 0; padding-block: 24px 64px; padding-left: max(16px, 2.5vw); padding-right: max(16px, env(safe-area-inset-right, 0px), 2.5vw); }
+.view { max-width: 1180px; display: flex; flex-direction: column; gap: 20px; }
+.view-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+.eyebrow { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--f-display); font-weight: 600; font-size: 28px; line-height: 1.15; margin: 2px 0 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 18px; line-height: 1.25; margin: 0; text-wrap: balance; }
+.question { color: var(--muted); font-size: 15px; margin: 4px 0 0; max-width: 62ch; }
+.lead { font-size: 15.5px; max-width: 72ch; margin: 0; }
+.plain { max-width: 72ch; margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; min-width: 0;
+  display: flex; flex-direction: column; gap: 14px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 520px) { .kpis.k3 { grid-template-columns: minmax(0, 1fr); } }
+.kpi { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi .k { font-size: 12px; color: var(--muted); font-weight: 500; }
+.kpi .v { font-family: var(--f-mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.kpi .d { font-size: 12px; color: var(--muted); }
+.pos { color: var(--good); }
+.neg { color: var(--crit); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.metric { border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }
+.metric .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.metric .label { font-weight: 600; font-size: 13px; }
+.metric .val { font-family: var(--f-mono); font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.metric .money { font-family: var(--f-mono); font-size: 12px; color: var(--muted); text-align: right; }
+.metric p { margin: 0; font-size: 12.5px; color: var(--muted); }
+details.formula summary { cursor: pointer; font-size: 12px; color: var(--accent); list-style: none; width: fit-content; }
+details.formula summary::-webkit-details-marker { display: none; }
+details.formula summary::before { content: "ƒ  "; font-family: var(--f-mono); }
+details.formula code { display: block; margin-top: 6px; font-family: var(--f-mono); font-size: 12px; background: var(--sunk); padding: 6px 8px; border-radius: 4px; }
+
+.table-wrap { overflow-x: auto; min-width: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.r, th.r { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--sunk); }
+tr.sel td { background: var(--accent-soft); }
+
+.bars { display: flex; flex-direction: column; gap: 7px; }
+.bar { display: grid; grid-template-columns: minmax(90px, 34%) minmax(0, 1fr) 64px; align-items: center; gap: 10px; font-size: 13px; }
+.bar .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .track { height: 12px; background: var(--sunk); border-radius: 3px; position: relative; overflow: hidden; }
+.bar .fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); border-radius: 3px; }
+.bar .fill.bench { background: var(--bench); }
+.bar .fill.negf { background: var(--crit); }
+.bar .fill.posf { background: var(--good); }
+.bar .val { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; font-size: 12.5px; }
+.bar.signed .track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.pair .track { height: 7px; }
+.pair .tracks { display: flex; flex-direction: column; gap: 3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 5px 11px; cursor: pointer; font-size: 12.5px; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 6px 12px; cursor: pointer; font-weight: 500; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--crit); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; letter-spacing: .02em; }
+.pill.pass, .pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warning, .pill.info { background: var(--warn-soft); color: var(--warn); }
+.pill.breach, .pill.critical { background: var(--crit-soft); color: var(--crit); }
+.pill.neutral { background: var(--sunk); color: var(--muted); }
+
+.flags { display: flex; flex-direction: column; gap: 8px; }
+.flag { display: grid; grid-template-columns: 4px minmax(0, 1fr); gap: 10px; font-size: 13px; }
+.flag::before { content: ""; border-radius: 2px; background: var(--warn); }
+.flag.breach::before, .flag.critical::before { background: var(--crit); }
+.flag.info::before { background: var(--bench); }
+
+.sliders { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 22px; }
+.slider label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; }
+.slider label output { font-family: var(--f-mono); font-weight: 400; }
+.slider input { width: 100%; accent-color: var(--accent); }
+
+svg.chart { width: 100%; height: auto; display: block; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .axis { fill: var(--muted); font-size: 11px; font-family: var(--f-mono); }
+svg .s-port { stroke: var(--accent); fill: none; stroke-width: 2; }
+svg .s-bench { stroke: var(--bench); fill: none; stroke-width: 1.5; }
+svg .area { fill: var(--accent); opacity: .08; }
+svg .hbar { fill: var(--accent); opacity: .75; }
+svg .hbar.lo { fill: var(--crit); opacity: .7; }
+svg .mark { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 3 3; }
+svg .marklab { fill: var(--ink); font-size: 11px; font-family: var(--f-mono); }
+svg .dot { fill: var(--accent); }
+
+.ask { display: flex; gap: 8px; }
+.ask input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 12.5px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.answer { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 6px; }
+.answer .q { font-weight: 600; }
+.answer .src { font-size: 12px; color: var(--muted); }
+
+.progress { height: 8px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--accent); }
+.gauge { height: 10px; background: var(--sunk); border-radius: 5px; overflow: hidden; position: relative; }
+.gauge > div { height: 100%; background: var(--good); transition: width .2s; }
+.gauge.hot > div { background: var(--warn); }
+.gauge.over > div { background: var(--crit); }
+canvas.spark { width: 100%; height: 120px; display: block; }
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; }
+.live-dot.on { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+.note { font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.error { color: var(--crit); }
+.skeleton { color: var(--muted); }
+.fund { display: flex; flex-direction: column; gap: 10px; }
+.fund-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; }
+.fund-stats div { display: flex; flex-direction: column; }
+.fund-stats b { font-family: var(--f-mono); font-weight: 500; font-size: 16px; }
+.fund-stats span { font-size: 12px; color: var(--muted); }
+select, input[type="number"] { border: 1px solid var(--line); border-radius: var(--r); padding: 5px 8px; background: var(--surface); }
+
+@media (max-width: 900px) {
+  .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+  .rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; height: auto; border-right: 0; border-bottom: 1px solid var(--line);
+    padding-block: 10px 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .brand small, .rail .mode { display: none; }
+  .nav { flex-direction: row; overflow-x: auto; margin: 8px 0 0; padding-bottom: 8px; scrollbar-width: none; }
+  .nav a { white-space: nowrap; padding: 6px 10px; }
+  .nav a span.n { display: none; }
+  main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1 { font-size: 24px; }
+  .bar { grid-template-columns: minmax(80px, 38%) minmax(0, 1fr) 58px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">Open Portfolio Platform<small id="pf-name">Loading portfolio…</small></div>
+    <nav class="nav" id="nav" aria-label="Modules"></nav>
+    <div class="mode" id="mode"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<script type="application/json" id="demo-data">{"GET /api/summary":{"portfolio":"Global Balanced Fund","as_of":"2026-10-23","base_currency":"USD","nav":{"key":"nav","value":9999478.471301738,"label":"Net asset value","meaning":"What the whole portfolio is worth today, including cash.","formula":"\u03a3 quantity \u00d7 price \u00d7 FX rate + cash","fmt":"money"},"cash":300000.0,"cash_weight":0.030001564667696694,"holdings":11,"day_change":-13836.346527021378,"day_change_pct":-0.0013817948180741993,"unrealised_pnl":-182906.62758352485,"description":"Global Balanced Fund is worth $10.00m across 11 holdings, split Fixed Income 45%, Equity 44%, Real Estate 4%, Commodity 4%. The largest holding is US Treasury 4.25% 2036 at 20.0% of the portfolio."},"GET /api/holdings":[{"id":"UST10","name":"US Treasury 4.25% 2036","asset_class":"Fixed Income","sector":"Government","country":"United States","currency":"USD","quantity":21900.0,"price":91.18293552685175,"fx_rate":1.0,"market_value":1996906.2880380533,"weight":0.19970104378634604,"unrealised_pnl":62698.28803805355},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","asset_class":"Fixed Income","sector":"Corporate","country":"United States","currency":"USD","quantity":13800.0,"price":94.29098447051935,"fx_rate":1.0,"market_value":1301215.585693167,"weight":0.13012834513596125,"unrealised_pnl":16435.585693167057},{"id":"BUND8","name":"German Bund 2.50% 2034","asset_class":"Fixed Income","sector":"Government","country":"Germany","currency":"EUR","quantity":13600.0,"price":96.39270073533878,"fx_rate":0.9163184679140779,"market_value":1201239.2012403195,"weight":0.12013018525794589,"unrealised_pnl":46018.182371683186},{"id":"NWT","name":"Northwind Technologies","asset_class":"Equity","sector":"Technology","country":"United States","currency":"USD","quantity":3799.0,"price":263.2596757703842,"fx_rate":1.0,"market_value":1000123.5082516896,"weight":0.1000175670283225,"unrealised_pnl":-381192.89174831053},{"id":"EMF","name":"Emerging Markets Equity ETF","asset_class":"Equity","sector":"Diversified","country":"Emerging Markets","currency":"USD","quantity":6313.0,"price":142.55923179808272,"fx_rate":1.0,"market_value":899976.4303412962,"weight":0.09000233691429076,"unrealised_pnl":109525.70034129627},{"id":"HLX","name":"Helix Health","asset_class":"Equity","sector":"Healthcare","country":"United States","currency":"USD","quantity":1898.0,"price":368.8523467225754,"fx_rate":1.0,"market_value":700081.7540794482,"weight":0.07001182672563032,"unrealised_pnl":-4455.845920551801},{"id":"KST","name":"Kestrel Industrials","asset_class":"Equity","sector":"Industrials","country":"Germany","currency":"EUR","quantity":5545.0,"price":137.77553374895203,"fx_rate":0.9163184679140779,"market_value":700035.5449749021,"weight":0.0700072055741694,"unrealised_pnl":-57895.12241182779},{"id":"SAK","name":"Sakura Consumer","asset_class":"Equity","sector":"Consumer","country":"Japan","currency":"JPY","quantity":16176.0,"price":4542.873420115547,"fx_rate":0.008164927807887147,"market_value":600003.9693485529,"weight":0.06000352629095104,"unrealised_pnl":46261.346718655084},{"id":"ORB","name":"Orbital Energy","asset_class":"Equity","sector":"Energy","country":"United States","currency":"USD","quantity":3982.0,"price":125.55270670956004,"fx_rate":1.0,"market_value":499950.8781174681,"weight":0.04999769533504322,"unrealised_pnl":-27345.561882531852},{"id":"HRB","name":"Harbour REIT","asset_class":"Real Estate","sector":"Real Estate","country":"United States","currency":"USD","quantity":5029.0,"price":79.5386719337765,"fx_rate":1.0,"market_value":399999.98115496204,"weight":0.0400020843389935,"unrealised_pnl":17293.08115496207},{"id":"GLDX","name":"Gold Bullion ETF","asset_class":"Commodity","sector":"Commodities","country":"Global","currency":"USD","quantity":1982.0,"price":201.78876390609483,"fx_rate":1.0,"market_value":399945.33006187994,"weight":0.039996618944649294,"unrealised_pnl":-10249.38993812009}],"GET /api/risk":{"headline":[{"key":"volatility","value":0.10716087036288706,"label":"Volatility (annual)","meaning":"How much the portfolio typically swings in a year. Higher means a bumpier ride.","formula":"standard deviation of daily returns \u00d7 \u221a252","fmt":"pct"},{"key":"ewma_volatility","value":0.11423018468403245,"label":"Recent volatility (EWMA)","meaning":"Volatility with recent days weighted more heavily, so it reacts faster to change.","formula":"\u03c3\u00b2\u209c = \u03bb\u03c3\u00b2\u209c\u208b\u2081 + (1\u2212\u03bb)r\u00b2\u209c, \u03bb = 0.94, then \u00d7 \u221a252","fmt":"pct"},{"key":"var_95","value":0.010495129754865294,"label":"Value at Risk (95%, 1 day)","meaning":"On 19 days out of 20, the portfolio should not lose more than this.","formula":"5th percentile of daily returns (historical simulation)","fmt":"pct","money":104945.8240372938},{"key":"var_99","value":0.014362530538326972,"label":"Value at Risk (99%, 1 day)","meaning":"On 99 days out of 100, the portfolio should not lose more than this.","formula":"1st percentile of daily returns (historical simulation)","fmt":"pct","money":143617.81491141432},{"key":"es_95","value":0.013443362046343162,"label":"Expected Shortfall (95%, 1 day)","meaning":"On the worst 1-in-20 days, this is the average loss. It describes how bad bad days get.","formula":"mean of returns below the 95% VaR threshold","fmt":"pct","money":134426.60936432332},{"key":"max_drawdown","value":0.12622194296240563,"label":"Maximum drawdown","meaning":"The largest fall from a high point before the portfolio recovered.","formula":"min over time of (value \u00f7 running peak \u2212 1)","fmt":"pct"},{"key":"beta","value":0.8757267620859076,"label":"Beta to benchmark","meaning":"If the benchmark moves 1%, the portfolio has tended to move this much.","formula":"covariance(portfolio, benchmark) \u00f7 variance(benchmark)","fmt":"ratio"},{"key":"tracking_error","value":0.03978758444333804,"label":"Tracking error","meaning":"How far, in a typical year, the portfolio's return drifts from the benchmark's.","formula":"standard deviation of (portfolio \u2212 benchmark) daily returns \u00d7 \u221a252","fmt":"pct"},{"key":"diversification_ratio","value":1.503028849419774,"label":"Diversification ratio","meaning":"How much holdings offset one another. 1.0 means no benefit; higher is better.","formula":"\u03a3 |w\u1d62| \u03c3\u1d62 \u00f7 \u03c3 portfolio","fmt":"ratio"},{"key":"effective_holdings","value":8.675712115632958,"label":"Effective number of holdings","meaning":"How many equally sized holdings would give the same concentration.","formula":"1 \u00f7 \u03a3 w\u1d62\u00b2 (inverse Herfindahl)","fmt":"number"}],"summary":"On a typical bad day (1 in 20) the portfolio could lose about $104,946; on the very worst days the average loss is closer to $134,427.","var_methods":{"confidence":0.95,"horizon_days":1,"historical":0.010495129754865294,"parametric":0.010791725353162314,"monte_carlo":0.010763932758860525,"bootstrap":0.010622194239108818,"expected_shortfall_historical":0.013443362046343162,"expected_shortfall_monte_carlo":0.01361530529074916,"money":{"historical":104945.8240372938,"parametric":107911.6253371477,"monte_carlo":107633.71388876534,"bootstrap":106216.40261195396,"expected_shortfall_historical":134426.60936432332,"expected_shortfall_monte_carlo":136145.9521350469}},"contributions":[{"id":"NWT","weight":0.1000175670283225,"marginal":0.25120609595144194,"component":0.025125022539746557,"percent":0.234460792028506,"name":"Northwind Technologies","standalone_vol":0.3192525704390673},{"id":"EMF","weight":0.09000233691429076,"marginal":0.19158915822618838,"component":0.017243471967798768,"percent":0.16091201862588347,"name":"Emerging Markets Equity ETF","standalone_vol":0.2349870888860583},{"id":"KST","weight":0.0700072055741694,"marginal":0.1992236519088543,"component":0.013947091154419928,"percent":0.13015096935280412,"name":"Kestrel Industrials","standalone_vol":0.2703877113499644},{"id":"HLX","weight":0.07001182672563032,"marginal":0.14424454603145115,"component":0.010098824162871164,"percent":0.09423984826432207,"name":"Helix Health","standalone_vol":0.2143138380130518},{"id":"ORB","weight":0.04999769533504322,"marginal":0.18848505164696838,"component":0.00942381818745501,"percent":0.08794085150244127,"name":"Orbital Energy","standalone_vol":0.2770703014138479},{"id":"SAK","weight":0.06000352629095104,"marginal":0.1435627301375272,"component":0.008614270052207823,"percent":0.08038633899702999,"name":"Sakura Consumer","standalone_vol":0.2287910722161243},{"id":"UST10","weight":0.19970104378634604,"marginal":0.03923259511326413,"component":0.007834790194565946,"percent":0.07311241657551303,"name":"US Treasury 4.25% 2036","standalone_vol":0.0795029585794789},{"id":"HRB","weight":0.0400020843389935,"marginal":0.1786303915061465,"component":0.007145587986536301,"percent":0.06668094391486976,"name":"Harbour REIT","standalone_vol":0.235126518335868},{"id":"BUND8","weight":0.12013018525794589,"marginal":0.03265761560105055,"component":0.003923165412236987,"percent":0.03661005550768365,"name":"German Bund 2.50% 2034","standalone_vol":0.08699844535824326},{"id":"CORP5","weight":0.13012834513596125,"marginal":0.019276113569236038,"component":0.002508368759417533,"percent":0.023407506405306824,"name":"Atlas Corp 5.10% 2031","standalone_vol":0.04234156309296023},{"id":"GLDX","weight":0.039996618944649294,"marginal":0.03241423849913894,"component":0.0012964599456310412,"percent":0.012098258825639804,"name":"Gold Bullion ETF","standalone_vol":0.13069946344368055}],"factors":{"exposures":{"Market":0.5098742435724424,"Size":0.03983225561932041,"Value":0.04995127837582674,"Momentum":0.014297733729643186,"Rates":-3.373160075345433},"alpha_annual":0.022338562441765467,"r_squared":{"key":"r_squared","value":0.8848355757936586,"label":"R-squared","meaning":"Share of the portfolio's movement explained by the factors.","formula":"1 \u2212 residual variance \u00f7 total variance","fmt":"pct"},"residual_vol":0.036365988962914174,"note":"Market, Size, Value and Momentum exposures read like beta: 0.6 means the portfolio moves about 0.6% when that factor moves 1%. The Rates exposure reads directly as the % change in value for a 1 percentage-point rise in yields (\u22123 means about \u22123%)."},"bonds":{"bonds":[{"id":"UST10","name":"US Treasury 4.25% 2036","yield":0.05402811065606017,"modified_duration":7.935105885744683,"convexity":75.45979426842833,"dv01":1584.5665433230458,"weight":0.19970104378634604,"market_value":1996906.2880380533},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","yield":0.06454097490251948,"modified_duration":4.317748228829413,"convexity":22.109880409367292,"dv01":561.8321563655045,"weight":0.13012834513596125,"market_value":1301215.585693167},{"id":"BUND8","name":"German Bund 2.50% 2034","yield":0.03010763185779522,"modified_duration":7.176027784353153,"convexity":58.19039720483232,"dv01":862.0126900191065,"weight":0.12013018525794589,"market_value":1201239.2012403195}],"portfolio_duration":{"key":"duration","value":3.0085679068202014,"label":"Portfolio duration","meaning":"If interest rates rise by 1 percentage point, the bond holdings lose roughly this share of the whole portfolio.","formula":"\u03a3 weight\u1d62 \u00d7 modified duration\u1d62","fmt":"number"},"dv01":{"key":"dv01","value":3008.411389707657,"label":"DV01","meaning":"Money lost if all interest rates rise by 0.01 percentage points.","formula":"\u03a3 position face \u00f7 100 \u00d7 price change per 1bp","fmt":"money"},"plain":"If all interest rates rose by 1 percentage point, the bonds would lose about $300,841 (3.01% of the portfolio)."},"liquidity":{"positions":[{"id":"CORP5","name":"Atlas Corp 5.10% 2031","days":8.625},{"id":"HRB","name":"Harbour REIT","days":0.628625},{"id":"SAK","name":"Sakura Consumer","days":0.0674},{"id":"KST","name":"Kestrel Industrials","days":0.030805555555555555},{"id":"BUND8","name":"German Bund 2.50% 2034","days":0.02266666666666667},{"id":"UST10","name":"US Treasury 4.25% 2036","days":0.0219},{"id":"ORB","name":"Orbital Energy","days":0.006636666666666667},{"id":"EMF","name":"Emerging Markets Equity ETF","days":0.0052608333333333335},{"id":"NWT","name":"Northwind Technologies","days":0.00474875},{"id":"HLX","name":"Helix Health","days":0.003796},{"id":"GLDX","name":"Gold Bullion ETF","days":0.001982}],"profile":{"1 day":0.8849589992276284,"5 days":0.9453083766819873,"20 days":1.0},"days_to_liquidate_90":{"key":"liquidity_days","value":1.9969283135519773,"label":"Days to liquidate (90%)","meaning":"Trading days needed to sell 90% of the portfolio without moving prices, trading no more than 20% of daily volume.","formula":"quantity \u00f7 (20% \u00d7 average daily volume), value-weighted","fmt":"days"},"participation":0.2}},"GET /api/scenarios":[{"scenario":{"name":"Inflation and rate shock (2022-style)","description":"Inflation forces rapid rate rises: bonds and equities fall together.","asset_class":{"Equity":-0.2,"Real Estate":-0.28,"Commodity":0.0},"sector":{"Technology":-0.33,"Energy":0.3},"country":{},"instrument":{},"rates":0.025,"credit_spread":0.01,"fx":{"EUR":-0.12,"JPY":-0.2,"GBP":-0.12},"illustrative":true},"pnl":-1884141.1463888271,"pnl_pct":-0.1884239414881753,"nav_after":8115337.324912911,"positions":[{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":-0.17669460285973826,"fx_move":0.0,"total_move":-0.17669460285973826,"pnl":-352842.56351299793},{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":-0.33,"fx_move":0.0,"total_move":-0.33000000000000007,"pnl":-330040.75772305764},{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":-0.16246531660019803,"fx_move":-0.12,"total_move":-0.2629694786081742,"pnl":-315889.2464338665},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":-0.2,"fx_move":-0.2,"total_move":-0.3599999999999999,"pnl":-216001.42896547896},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":-0.2,"fx_move":-0.12,"total_move":-0.29599999999999993,"pnl":-207210.52131257096},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":-0.13843229534681645,"fx_move":0.0,"total_move":-0.13843229534681645,"pnl":-180130.26026855723},{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":-0.2,"fx_move":0.0,"total_move":-0.19999999999999996,"pnl":-179995.2860682592},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":-0.2,"fx_move":0.0,"total_move":-0.19999999999999996,"pnl":-140016.3508158896},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":-0.28,"fx_move":0.0,"total_move":-0.28,"pnl":-111999.99472338938},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":0.3,"fx_move":0.0,"total_move":0.30000000000000004,"pnl":149985.26343524046}],"plain":"Under 'Inflation and rate shock (2022-style)', the portfolio would lose about $1.88m (-18.8%). The biggest hit comes from US Treasury 4.25% 2036 (-$352,843), while Orbital Energy cushions the blow ($149,985)."},{"scenario":{"name":"Global Financial Crisis (2008-style)","description":"Banking crisis: equities and property collapse, government bonds rally, credit spreads blow out.","asset_class":{"Equity":-0.4,"Real Estate":-0.45,"Commodity":0.05},"sector":{"Financials":-0.55,"Energy":-0.45},"country":{},"instrument":{},"rates":-0.015,"credit_spread":0.03,"fx":{"EUR":-0.1,"JPY":0.15,"GBP":-0.2},"illustrative":true},"pnl":-1755004.421716789,"pnl_pct":-0.1755095955007663,"nav_after":8244474.049584949,"positions":[{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":-0.4,"fx_move":0.0,"total_move":-0.4,"pnl":-400049.40330067585},{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":-0.4,"fx_move":0.0,"total_move":-0.4,"pnl":-359990.57213651855},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":-0.4,"fx_move":-0.1,"total_move":-0.45999999999999996,"pnl":-322016.3506884549},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":-0.4,"fx_move":0.0,"total_move":-0.4,"pnl":-280032.70163177926},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":-0.45,"fx_move":0.0,"total_move":-0.44999999999999996,"pnl":-224977.8951528606},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":-0.4,"fx_move":0.15,"total_move":-0.31000000000000005,"pnl":-186001.23049805142},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":-0.45,"fx_move":0.0,"total_move":-0.44999999999999996,"pnl":-179999.9915197329},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":-0.062348102849305476,"fx_move":0.0,"total_move":-0.062348102849305476,"pnl":-81128.32316591684},{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":0.11448264006969833,"fx_move":-0.1,"total_move":0.0030343760627284944,"pnl":3645.011477854722},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":0.05,"fx_move":0.0,"total_move":0.050000000000000044,"pnl":19997.266503094015},{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":0.12797283975069673,"fx_move":0.0,"total_move":0.12797283975069673,"pnl":255549.76839625245}],"plain":"Under 'Global Financial Crisis (2008-style)', the portfolio would lose about $1.76m (-17.6%). The biggest hit comes from Northwind Technologies (-$400,049), while US Treasury 4.25% 2036 cushions the blow ($255,550)."},{"scenario":{"name":"Pandemic crash (2020-style)","description":"A sudden global shutdown: a sharp equity fall, rates cut to near zero, a flight to safety.","asset_class":{"Equity":-0.3,"Real Estate":-0.35,"Commodity":-0.03},"sector":{"Energy":-0.5,"Healthcare":-0.15,"Technology":-0.2},"country":{},"instrument":{},"rates":-0.01,"credit_spread":0.02,"fx":{"EUR":-0.03,"JPY":0.03,"GBP":-0.08},"illustrative":true},"pnl":-1206561.1025803683,"pnl_pct":-0.12066240314864116,"nav_after":8792917.36872137,"positions":[{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":-0.3,"fx_move":0.0,"total_move":-0.30000000000000004,"pnl":-269992.9291023889},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":-0.5,"fx_move":0.0,"total_move":-0.5,"pnl":-249975.43905873405},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":-0.3,"fx_move":-0.03,"total_move":-0.32100000000000006,"pnl":-224711.40993694362},{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":-0.2,"fx_move":0.0,"total_move":-0.19999999999999996,"pnl":-200024.70165033787},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":-0.3,"fx_move":0.03,"total_move":-0.279,"pnl":-167401.10744824627},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":-0.35,"fx_move":0.0,"total_move":-0.35,"pnl":-139999.9934042367},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":-0.15,"fx_move":0.0,"total_move":-0.15000000000000002,"pnl":-105012.26311191724},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":-0.04209266203678619,"fx_move":0.0,"total_move":-0.04209266203678619,"pnl":-54771.62788558128},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":-0.03,"fx_move":0.0,"total_move":-0.030000000000000027,"pnl":-11998.35990185641},{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":0.07475641323986637,"fx_move":-0.03,"total_move":0.042513720842670244,"pnl":51069.14806680313},{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":0.0832575779088851,"fx_move":0.0,"total_move":0.0832575779088851,"pnl":166257.58085307077}],"plain":"Under 'Pandemic crash (2020-style)', the portfolio would lose about $1.21m (-12.1%). The biggest hit comes from Emerging Markets Equity ETF (-$269,993), while US Treasury 4.25% 2036 cushions the blow ($166,258)."},{"scenario":{"name":"Emerging markets crisis","description":"Capital flight from emerging markets; developed markets wobble.","asset_class":{"Equity":-0.08},"sector":{},"country":{"Emerging Markets":-0.3},"instrument":{},"rates":0.0,"credit_spread":0.015,"fx":{},"illustrative":true},"pnl":-631136.9046500705,"pnl_pct":-0.06311698219676337,"nav_after":9368341.566651668,"positions":[{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":-0.3,"fx_move":0.0,"total_move":-0.30000000000000004,"pnl":-269992.9291023889},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":-0.062348102849305476,"fx_move":0.0,"total_move":-0.062348102849305476,"pnl":-81128.32316591684},{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":-0.08,"fx_move":0.0,"total_move":-0.07999999999999996,"pnl":-80009.88066013512},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":-0.08,"fx_move":0.0,"total_move":-0.07999999999999996,"pnl":-56006.540326355826},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":-0.08,"fx_move":0.0,"total_move":-0.07999999999999996,"pnl":-56002.843597992134},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":-0.08,"fx_move":0.0,"total_move":-0.07999999999999996,"pnl":-48000.3175478842},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":-0.08,"fx_move":0.0,"total_move":-0.07999999999999996,"pnl":-39996.070249397424},{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0}],"plain":"Under 'Emerging markets crisis', the portfolio would lose about $631,137 (-6.3%). The biggest hit comes from Emerging Markets Equity ETF (-$269,993)."},{"scenario":{"name":"Technology sell-off","description":"A sharp de-rating of technology shares while the wider market holds up.","asset_class":{"Equity":-0.06},"sector":{"Technology":-0.25},"country":{},"instrument":{},"rates":-0.003,"credit_spread":0.0,"fx":{},"illustrative":true},"pnl":-362648.7919092913,"pnl_pct":-0.03626677060709562,"nav_after":9636829.679392448,"positions":[{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":-0.25,"fx_move":0.0,"total_move":-0.25,"pnl":-250030.8770629224},{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":-0.06,"fx_move":0.0,"total_move":-0.06000000000000005,"pnl":-53998.58582047782},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":-0.06,"fx_move":0.0,"total_move":-0.06000000000000005,"pnl":-42004.90524476693},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":-0.06,"fx_move":0.0,"total_move":-0.06000000000000005,"pnl":-42002.13269849416},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":-0.06,"fx_move":0.0,"total_move":-0.06000000000000005,"pnl":-36000.238160913206},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":-0.06,"fx_move":0.0,"total_move":-0.06000000000000005,"pnl":-29997.05268704811},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":0.013053308697073884,"fx_move":0.0,"total_move":0.013053308697073884,"pnl":16985.168721496706},{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":0.02179224074044761,"fx_move":0.0,"total_move":0.02179224074044761,"pnl":26177.693860292038},{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":0.024148422723892837,"fx_move":0.0,"total_move":0.024148422723892837,"pnl":48222.137183542625}],"plain":"Under 'Technology sell-off', the portfolio would lose about $362,649 (-3.6%). The biggest hit comes from Northwind Technologies (-$250,031), while US Treasury 4.25% 2036 cushions the blow ($48,222)."},{"scenario":{"name":"Rates up 1 percentage point","description":"A parallel rise in all interest rates, everything else unchanged.","asset_class":{},"sector":{},"country":{},"instrument":{},"rates":0.01,"credit_spread":0.0,"fx":{},"illustrative":false},"pnl":-288751.94245664973,"pnl_pct":-0.02887670024845404,"nav_after":9710726.528845089,"positions":[{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":-0.07570447962049665,"fx_move":0.0,"total_move":-0.07570447962049665,"pnl":-151174.75138681842},{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":-0.0689334506389323,"fx_move":0.0,"total_move":-0.0689334506389323,"pnl":-82805.56318425003},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":-0.04209266203678619,"fx_move":0.0,"total_move":-0.04209266203678619,"pnl":-54771.62788558128},{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0}],"plain":"Under 'Rates up 1 percentage point', the portfolio would lose about $288,752 (-2.9%). The biggest hit comes from US Treasury 4.25% 2036 (-$151,175)."},{"scenario":{"name":"Dollar strengthens 10%","description":"The base currency rises 10% against all others.","asset_class":{},"sector":{},"country":{},"instrument":{},"rates":0.0,"credit_spread":0.0,"fx":{"EUR":-0.1,"JPY":-0.1,"GBP":-0.1},"illustrative":false},"pnl":-250127.8715563774,"pnl_pct":-0.025014091712306633,"nav_after":9749350.599745361,"positions":[{"id":"BUND8","name":"German Bund 2.50% 2034","market_value":1201239.2012403195,"price_move":0.0,"fx_move":-0.1,"total_move":-0.09999999999999998,"pnl":-120123.92012403192},{"id":"KST","name":"Kestrel Industrials","market_value":700035.5449749021,"price_move":0.0,"fx_move":-0.1,"total_move":-0.09999999999999998,"pnl":-70003.55449749019},{"id":"SAK","name":"Sakura Consumer","market_value":600003.9693485529,"price_move":0.0,"fx_move":-0.1,"total_move":-0.09999999999999998,"pnl":-60000.39693485527},{"id":"UST10","name":"US Treasury 4.25% 2036","market_value":1996906.2880380533,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"NWT","name":"Northwind Technologies","market_value":1000123.5082516896,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","market_value":1301215.585693167,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"HLX","name":"Helix Health","market_value":700081.7540794482,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"EMF","name":"Emerging Markets Equity ETF","market_value":899976.4303412962,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"ORB","name":"Orbital Energy","market_value":499950.8781174681,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"HRB","name":"Harbour REIT","market_value":399999.98115496204,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0},{"id":"GLDX","name":"Gold Bullion ETF","market_value":399945.33006187994,"price_move":0.0,"fx_move":0.0,"total_move":0.0,"pnl":0.0}],"plain":"Under 'Dollar strengthens 10%', the portfolio would lose about $250,128 (-2.5%). The biggest hit comes from German Bund 2.50% 2034 (-$120,124)."}],"GET /api/scenarios/projection":{"horizon_days":252,"simulations":10000,"start_value":9999478.471301738,"percentiles":{"p5":9080111.706928989,"p25":10004555.817095615,"p50":10757398.17088886,"p75":11525538.46921263,"p95":12810000.48478865},"probability_of_loss":0.2484,"probability_of_loss_over_10pct":0.0423,"histogram":{"counts":[3,9,13,58,99,218,333,454,686,830,888,938,949,964,810,700,565,415,321,236,166,122,91,53,26,19,10,8,8,3,0,2,1,0,0,0,1,0,0,1],"edges":[7344213.983735745,7616918.356003567,7889622.728271388,8162327.10053921,8435031.472807031,8707735.845074855,8980440.217342675,9253144.589610498,9525848.961878318,9798553.334146142,10071257.706413962,10343962.078681786,10616666.450949606,10889370.82321743,11162075.19548525,11434779.567753073,11707483.940020893,11980188.312288716,12252892.684556536,12525597.05682436,12798301.42909218,13071005.801360004,13343710.173627824,13616414.545895647,13889118.918163467,14161823.29043129,14434527.66269911,14707232.034966934,14979936.407234754,15252640.779502578,15525345.151770398,15798049.524038222,16070753.896306042,16343458.268573865,16616162.640841685,16888867.01310951,17161571.38537733,17434275.757645153,17706980.129912972,17979684.502180796,18252388.874448616]},"plain":"Across 10,000 simulated years, the middle outcome is $10.76m. In 9 out of 10 cases the value ends between $9.08m and $12.81m. The chance of ending lower than today is 25%, and of losing more than 10% is 4%."},"GET /api/performance":{"period_returns":{"MTD":-0.005627968621286228,"QTD":-0.005627968621286228,"YTD":-0.06098299547748787,"1Y":0.00802965023603286,"3Y (ann.)":0.05370316896668914,"Since inception (ann.)":0.03981264938215956},"metrics":[{"key":"twr","value":0.2811032214150371,"label":"Time-weighted return","meaning":"The return the investment decisions earned, ignoring when money came in or out.","formula":"\u03a0(1 + daily return) \u2212 1","fmt":"pct"},{"key":"mwr","value":0.04124746818149573,"label":"Money-weighted return","meaning":"The investor's own annual return, including the timing of their deposits.","formula":"internal rate of return of all cash flows","fmt":"pct"},{"key":"volatility","value":0.0967362023580158,"label":"Volatility (annual)","meaning":"How much the portfolio typically swings in a year. Higher means a bumpier ride.","formula":"standard deviation of daily returns \u00d7 \u221a252","fmt":"pct"},{"key":"sharpe","value":0.03841971049967281,"label":"Sharpe ratio","meaning":"Return earned for each unit of risk taken. Above 1 is generally good.","formula":"(annual return \u2212 risk-free rate) \u00f7 annual volatility","fmt":"ratio"},{"key":"sortino","value":0.05513504391147261,"label":"Sortino ratio","meaning":"Like Sharpe, but only counts the bad swings as risk.","formula":"(return \u2212 risk-free) \u00f7 downside deviation","fmt":"ratio"},{"key":"max_drawdown","value":0.12622194296240563,"label":"Maximum drawdown","meaning":"The largest fall from a high point before the portfolio recovered.","formula":"min over time of (value \u00f7 running peak \u2212 1)","fmt":"pct"},{"key":"information_ratio","value":-0.3588883542506019,"label":"Information ratio","meaning":"How consistently the portfolio beats its benchmark. Above 0.5 is respectable.","formula":"mean active return \u00f7 tracking error (annualised)","fmt":"ratio"},{"key":"beta","value":0.7621004332349697,"label":"Beta to benchmark","meaning":"If the benchmark moves 1%, the portfolio has tended to move this much.","formula":"covariance(portfolio, benchmark) \u00f7 variance(benchmark)","fmt":"ratio"}],"start":"2020-09-07","end":"2026-10-23","benchmark_period_returns":{"MTD":0.0027856115918709623,"QTD":0.0027856115918709623,"YTD":-0.046414374212596865,"1Y":-0.020129624115299727,"3Y (ann.)":0.05426665518460916,"Since inception (ann.)":0.05644427070769331},"active_return_annual":-0.016631621325533752,"plain":"Since 2020-09-07 the portfolio has returned 4.0% a year against 5.6% for the benchmark, behind by 1.7% a year, with a Sharpe ratio of 0.04.","growth":{"dates":["2020-09-08","2020-09-15","2020-09-22","2020-09-29","2020-10-06","2020-10-13","2020-10-20","2020-10-27","2020-11-03","2020-11-10","2020-11-17","2020-11-24","2020-12-01","2020-12-08","2020-12-15","2020-12-22","2020-12-29","2021-01-05","2021-01-12","2021-01-19","2021-01-26","2021-02-02","2021-02-09","2021-02-16","2021-02-23","2021-03-02","2021-03-09","2021-03-16","2021-03-23","2021-03-30","2021-04-06","2021-04-13","2021-04-20","2021-04-27","2021-05-04","2021-05-11","2021-05-18","2021-05-25","2021-06-01","2021-06-08","2021-06-15","2021-06-22","2021-06-29","2021-07-06","2021-07-13","2021-07-20","2021-07-27","2021-08-03","2021-08-10","2021-08-17","2021-08-24","2021-08-31","2021-09-07","2021-09-14","2021-09-21","2021-09-28","2021-10-05","2021-10-12","2021-10-19","2021-10-26","2021-11-02","2021-11-09","2021-11-16","2021-11-23","2021-11-30","2021-12-07","2021-12-14","2021-12-21","2021-12-28","2022-01-04","2022-01-11","2022-01-18","2022-01-25","2022-02-01","2022-02-08","2022-02-15","2022-02-22","2022-03-01","2022-03-08","2022-03-15","2022-03-22","2022-03-29","2022-04-05","2022-04-12","2022-04-19","2022-04-26","2022-05-03","2022-05-10","2022-05-17","2022-05-24","2022-05-31","2022-06-07","2022-06-14","2022-06-21","2022-06-28","2022-07-05","2022-07-12","2022-07-19","2022-07-26","2022-08-02","2022-08-09","2022-08-16","2022-08-23","2022-08-30","2022-09-06","2022-09-13","2022-09-20","2022-09-27","2022-10-04","2022-10-11","2022-10-18","2022-10-25","2022-11-01","2022-11-08","2022-11-15","2022-11-22","2022-11-29","2022-12-06","2022-12-13","2022-12-20","2022-12-27","2023-01-03","2023-01-10","2023-01-17","2023-01-24","2023-01-31","2023-02-07","2023-02-14","2023-02-21","2023-02-28","2023-03-07","2023-03-14","2023-03-21","2023-03-28","2023-04-04","2023-04-11","2023-04-18","2023-04-25","2023-05-02","2023-05-09","2023-05-16","2023-05-23","2023-05-30","2023-06-06","2023-06-13","2023-06-20","2023-06-27","2023-07-04","2023-07-11","2023-07-18","2023-07-25","2023-08-01","2023-08-08","2023-08-15","2023-08-22","2023-08-29","2023-09-05","2023-09-12","2023-09-19","2023-09-26","2023-10-03","2023-10-10","2023-10-17","2023-10-24","2023-10-31","2023-11-07","2023-11-14","2023-11-21","2023-11-28","2023-12-05","2023-12-12","2023-12-19","2023-12-26","2024-01-02","2024-01-09","2024-01-16","2024-01-23","2024-01-30","2024-02-06","2024-02-13","2024-02-20","2024-02-27","2024-03-05","2024-03-12","2024-03-19","2024-03-26","2024-04-02","2024-04-09","2024-04-16","2024-04-23","2024-04-30","2024-05-07","2024-05-14","2024-05-21","2024-05-28","2024-06-04","2024-06-11","2024-06-18","2024-06-25","2024-07-02","2024-07-09","2024-07-16","2024-07-23","2024-07-30","2024-08-06","2024-08-13","2024-08-20","2024-08-27","2024-09-03","2024-09-10","2024-09-17","2024-09-24","2024-10-01","2024-10-08","2024-10-15","2024-10-22","2024-10-29","2024-11-05","2024-11-12","2024-11-19","2024-11-26","2024-12-03","2024-12-10","2024-12-17","2024-12-24","2024-12-31","2025-01-07","2025-01-14","2025-01-21","2025-01-28","2025-02-04","2025-02-11","2025-02-18","2025-02-25","2025-03-04","2025-03-11","2025-03-18","2025-03-25","2025-04-01","2025-04-08","2025-04-15","2025-04-22","2025-04-29","2025-05-06","2025-05-13","2025-05-20","2025-05-27","2025-06-03","2025-06-10","2025-06-17","2025-06-24","2025-07-01","2025-07-08","2025-07-15","2025-07-22","2025-07-29","2025-08-05","2025-08-12","2025-08-19","2025-08-26","2025-09-02","2025-09-09","2025-09-16","2025-09-23","2025-09-30","2025-10-07","2025-10-14","2025-10-21","2025-10-28","2025-11-04","2025-11-11","2025-11-18","2025-11-25","2025-12-02","2025-12-09","2025-12-16","2025-12-23","2025-12-30","2026-01-06","2026-01-13","2026-01-20","2026-01-27","2026-02-03","2026-02-10","2026-02-17","2026-02-24","2026-03-03","2026-03-10","2026-03-17","2026-03-24","2026-03-31","2026-04-07","2026-04-14","2026-04-21","2026-04-28","2026-05-05","2026-05-12","2026-05-19","2026-05-26","2026-06-02","2026-06-09","2026-06-16","2026-06-23","2026-06-30","2026-07-07","2026-07-14","2026-07-21","2026-07-28","2026-08-04","2026-08-11","2026-08-18","2026-08-25","2026-09-01","2026-09-08","2026-09-15","2026-09-22","2026-09-29","2026-10-06","2026-10-13","2026-10-20"],"Portfolio":[99.884,101.108,101.027,100.841,99.722,98.351,98.315,98.853,100.574,99.052,98.319,99.343,97.61,98.676,97.191,99.426,103.829,103.696,105.721,104.658,104.96,105.019,106.4,106.127,104.159,105.244,104.244,105.451,104.605,103.315,103.983,106.358,104.719,104.568,103.742,105.557,106.719,106.546,106.711,106.726,105.662,106.95,107.983,106.848,109.784,108.06,107.912,107.175,108.452,108.68,109.818,108.994,108.883,108.908,107.721,108.088,107.017,107.534,106.34,107.488,105.227,103.821,103.326,103.056,102.37,101.345,101.748,101.025,100.413,98.493,99.305,98.846,99.801,99.767,101.958,101.196,102.354,102.179,102.54,100.649,100.211,101.443,104.667,102.979,105.265,106.828,105.937,104.725,104.147,104.287,104.078,101.834,102.579,103.232,103.429,102.921,101.321,102.021,102.92,106.156,105.002,105.343,105.716,107.864,108.118,106.726,106.737,106.075,106.951,107.365,108.724,107.522,107.946,110.179,107.283,107.824,109.275,110.273,111.873,113.266,114.264,114.432,113.817,111.439,113.911,112.92,113.603,114.621,115.871,114.214,114.246,114.927,115.626,116.963,115.588,116.431,115.125,114.366,114.177,114.253,112.632,112.403,113.71,114.997,116.131,116.428,115.988,120.654,120.211,122.371,114.727,114.455,113.039,114.012,114.823,114.866,114.29,113.104,113.497,110.851,112.4,111.366,109.789,108.484,109.612,110.66,111.113,109.245,109.189,110.352,108.025,107.436,108.537,111.114,111.072,111.404,110.326,111.455,114.353,112.969,112.505,113.509,113.963,112.235,114.144,114.538,113.646,112.892,113.389,110.813,111.72,110.028,110.971,111.548,111.406,113.086,114.561,113.087,113.2,112.368,112.427,114.134,115.326,115.04,115.08,115.06,115.119,116.197,116.379,117.275,117.093,121.659,122.252,124.126,124.586,126.411,126.467,124.779,126.757,128.925,126.725,124.23,121.321,122.115,122.278,121.045,118.975,121.045,123.293,126.19,123.637,120.568,122.358,122.119,119.807,121.944,118.714,117.892,119.917,116.934,119.828,121.225,118.856,118.257,118.055,116.796,117.635,117.484,117.627,115.53,118.554,117.056,121.612,121.039,121.622,120.821,122.661,119.944,118.732,118.752,121.144,123.059,123.147,122.528,123.997,122.844,124.072,125.197,128.554,129.751,129.061,129.777,132.347,134.659,135.256,134.023,136.801,137.061,133.131,133.653,133.176,133.96,131.73,134.445,133.413,132.06,131.591,131.655,133.521,131.457,130.756,129.59,130.118,130.26,130.911,129.67,127.151,126.402,128.761,126.836,128.37,129.941,126.929,126.373,124.384,123.752,123.537,122.941,125.846,126.025,126.453,127.073,126.808,125.77,128.584,130.524,128.632,127.29,128.35,129.208],"Benchmark":[99.977,100.773,100.025,98.803,97.937,95.911,96.393,96.576,98.99,96.981,96.59,98.039,96.97,98.885,98.654,103.403,109.454,108.246,110.542,110.716,111.432,111.653,114.068,115.328,112.436,114.379,113.552,116.071,115.933,113.69,115.791,122.03,120.006,118.893,116.971,119.467,119.966,118.664,118.557,117.395,114.683,116.644,119.401,117.005,120.461,118.149,118.911,117.276,120.89,121.256,122.169,119.804,120.791,120.637,118.355,120.211,118.729,119.439,117.999,119.064,115.465,112.432,111.563,110.124,108.725,108.685,107.881,107.469,106.013,105.028,106.418,104.383,105.136,105.729,110.357,108.135,109.97,109.657,111.078,108.161,106.632,108.477,113.452,112.326,115.205,117.928,116.817,115.293,114.351,113.769,113.072,109.868,111.167,110.005,110.092,109.334,107.67,109.307,110.616,115.525,114.865,114.891,115.831,120.245,120.503,117.759,118.883,118.444,120.806,122.017,123.289,122.322,122.314,124.357,119.12,118.342,120.392,120.833,122.26,123.771,125.833,127.162,127.322,125.055,129.053,128.811,130.283,131.692,132.268,129.132,127.806,127.089,127.441,128.887,128.661,130.506,128.032,127.116,126.393,125.797,125.22,126.04,127.806,129.422,133.414,133.869,133.592,139.213,139.432,140.928,130.659,130.105,128.139,129.825,130.502,130.554,128.606,127.275,128.027,125.846,126.98,124.981,122.203,120.297,121.195,121.363,121.5,119.823,118.783,119.423,115.84,114.079,116.247,118.02,119.324,119.104,118.544,121.057,123.507,121.603,119.949,119.845,121.612,119.112,121.994,122.23,121.152,119.849,121.546,118.822,120.157,119.651,120.822,121.709,121.692,123.674,124.753,122.391,122.637,121.663,121.432,122.68,125.303,125.235,123.565,123.051,124.704,126.24,126.009,127.689,126.975,132.548,135.085,136.904,137.404,137.099,137.083,135.824,137.82,138.086,135.589,133.352,130.479,129.685,130.961,130.751,127.714,129.885,132.98,136.731,135.219,132.665,134.356,133.375,131.551,134.769,130.618,129.671,130.581,127.485,129.923,133.02,130.805,129.415,129.362,128.453,128.625,129.495,129.427,127.719,130.228,129.698,134.414,133.741,135.914,135.399,136.394,133.759,132.095,132.615,135.002,137.586,138.725,139.644,140.711,140.667,141.735,142.016,145.232,145.731,145.343,145.186,147.91,148.569,148.508,146.98,148.435,148.983,146.459,146.638,145.709,147.033,145.852,147.203,146.231,145.287,143.968,143.821,145.273,143.002,142.433,141.197,142.901,143.608,145.45,144.394,140.886,141.104,144.21,141.313,141.973,143.912,140.602,139.5,137.416,136.996,136.38,135.916,139.465,139.318,139.445,141.488,141.049,139.286,141.944,144.145,140.803,138.855,141.288,142.416]},"contributors":{"days":21,"pnl":{"Northwind Technologies":-51171.22918049614,"Emerging Markets Equity ETF":-45860.499379860135,"Helix Health":-19893.38470349799,"Kestrel Industrials":-14567.46087357756,"Orbital Energy":-5705.552861213116,"Gold Bullion ETF":-4603.3249262842355,"Harbour REIT":-1634.003345013359,"Sakura Consumer":15229.29882586707,"Atlas Corp 5.10% 2031":23432.856614762837,"German Bund 2.50% 2034":66230.67896650842,"US Treasury 4.25% 2036":67776.90059143356},"plain":"Over the last 21 trading days, US Treasury 4.25% 2036 added the most ($67,777) and Northwind Technologies detracted the most (-$51,171)."},"factor_attribution":{"contributions":{"Market":-0.03706907598820472,"Size":0.007798334747396987,"Value":0.0073543437758795925,"Momentum":0.003617445757595395,"Rates":0.013945546413155992},"unexplained":0.009087204482957356,"total":0.004733799188780606,"plain":"Of the +0.5% earned over the period (simple sum of daily returns), the factors explain -0.4%; the remaining +0.9% is specific to the holdings chosen."}},"GET /api/performance/attribution":{"start":"2025-10-23","end":"2026-10-23","portfolio_return":0.009308763913068679,"benchmark_return":-0.021970869776700194,"active_return":0.031279633689768875,"table":[{"segment":"Cash","portfolio_weight":0.03024246673851202,"benchmark_weight":0.0,"portfolio_return":0.04229528259369597,"benchmark_return":0.0,"allocation":0.0006644532984380347,"selection":0.0,"interaction":0.0012791136770358169,"total":0.0019435669754738515},{"segment":"Commodity","portfolio_weight":0.041022613120889374,"benchmark_weight":0.0,"portfolio_return":-0.01718162890827013,"benchmark_return":0.0,"allocation":0.0009013024907790132,"selection":-0.0,"interaction":-0.0007048353154906544,"total":0.00019646717528835878},{"segment":"Equity","portfolio_weight":0.44841268589583877,"benchmark_weight":0.6,"portfolio_return":-0.010791754163403833,"benchmark_return":-0.06027923820717673,"allocation":0.00580706267808858,"selection":0.029692490426263738,"interaction":-0.007501674787968068,"total":0.027997878316384252},{"segment":"Fixed Income","portfolio_weight":0.44294570148520707,"benchmark_weight":0.4,"portfolio_return":0.023991407209587257,"benchmark_return":0.03549168286901461,"allocation":0.002467769632500862,"selection":-0.00460011026377094,"interaction":-0.0004938874054673596,"total":-0.0026262280367374377},{"segment":"Real Estate","portfolio_weight":0.037376532759552765,"benchmark_weight":0.0,"portfolio_return":0.078839691855634,"benchmark_return":0.0,"allocation":0.0008211949339647026,"selection":0.0,"interaction":0.0029467543253951494,"total":0.0037679492593598518}],"totals":{"allocation":0.010661783033771194,"selection":0.025092380162492798,"interaction":-0.004474529506495116,"total":0.031279633689768875},"plain":"Over the period the portfolio returned 0.9% against -2.2% for the benchmark. Asset-class choices contributed +1.1%, holding selection +2.5% and their interaction -0.4%. The biggest single contributor was Equity (+2.8%)."},"GET /api/compliance":{"counts":{"pass":16,"warning":3,"breach":1},"issues":[{"rule_id":"R1","status":"warning","measured":0.19970104378634604,"limit":0.21,"message":"US Treasury 4.25% 2036 is 20.0% of the portfolio (limit 21%).","subject":"US Treasury 4.25% 2036"},{"rule_id":"R5","status":"warning","measured":0.05539783554990066,"limit":0.06,"message":"Energy is 5.5% of the portfolio; the rule says at most 6%.","subject":"Energy"},{"rule_id":"R9","status":"breach","measured":0.13012834513596128,"limit":0.1,"message":"13.0% of the portfolio would take more than 5 days to sell (limit 10%).","subject":"Portfolio"},{"rule_id":"R10","status":"warning","measured":11.0,"limit":10,"message":"The portfolio holds 11 instruments (minimum 10).","subject":"Portfolio"}],"results":[{"rule_id":"R1","status":"warning","measured":0.19970104378634604,"limit":0.21,"message":"US Treasury 4.25% 2036 is 20.0% of the portfolio (limit 21%).","subject":"US Treasury 4.25% 2036"},{"rule_id":"R1","status":"pass","measured":0.13012834513596125,"limit":0.21,"message":"Atlas Corp 5.10% 2031 is 13.0% of the portfolio (limit 21%).","subject":"Atlas Corp 5.10% 2031"},{"rule_id":"R1","status":"pass","measured":0.12013018525794589,"limit":0.21,"message":"German Bund 2.50% 2034 is 12.0% of the portfolio (limit 21%).","subject":"German Bund 2.50% 2034"},{"rule_id":"R1","status":"pass","measured":0.1000175670283225,"limit":0.21,"message":"Northwind Technologies is 10.0% of the portfolio (limit 21%).","subject":"Northwind Technologies"},{"rule_id":"R1","status":"pass","measured":0.09000233691429076,"limit":0.21,"message":"Emerging Markets Equity ETF is 9.0% of the portfolio (limit 21%).","subject":"Emerging Markets Equity ETF"},{"rule_id":"R1","status":"pass","measured":0.07001182672563032,"limit":0.21,"message":"Helix Health is 7.0% of the portfolio (limit 21%).","subject":"Helix Health"},{"rule_id":"R1","status":"pass","measured":0.0700072055741694,"limit":0.21,"message":"Kestrel Industrials is 7.0% of the portfolio (limit 21%).","subject":"Kestrel Industrials"},{"rule_id":"R1","status":"pass","measured":0.06000352629095104,"limit":0.21,"message":"Sakura Consumer is 6.0% of the portfolio (limit 21%).","subject":"Sakura Consumer"},{"rule_id":"R1","status":"pass","measured":0.04999769533504322,"limit":0.21,"message":"Orbital Energy is 5.0% of the portfolio (limit 21%).","subject":"Orbital Energy"},{"rule_id":"R1","status":"pass","measured":0.0400020843389935,"limit":0.21,"message":"Harbour REIT is 4.0% of the portfolio (limit 21%).","subject":"Harbour REIT"},{"rule_id":"R1","status":"pass","measured":0.039996618944649294,"limit":0.21,"message":"Gold Bullion ETF is 4.0% of the portfolio (limit 21%).","subject":"Gold Bullion ETF"},{"rule_id":"R2","status":"pass","measured":0.4400401578684073,"limit":0.6,"message":"Equity is 44.0% of the portfolio; the rule says at most 60%.","subject":"Equity"},{"rule_id":"R3","status":"pass","measured":0.4499595741802532,"limit":0.3,"message":"Fixed Income is 45.0% of the portfolio; the rule says at least 30%.","subject":"Fixed Income"},{"rule_id":"R4","status":"pass","measured":0.0,"limit":0.0,"message":"No holdings carry the 'tobacco' exclusion tag.","subject":"Portfolio"},{"rule_id":"R5","status":"warning","measured":0.05539783554990066,"limit":0.06,"message":"Energy is 5.5% of the portfolio; the rule says at most 6%.","subject":"Energy"},{"rule_id":"R6","status":"pass","measured":0.030001564667696694,"limit":0.02,"message":"Cash is 3.0% of the portfolio (minimum 2%).","subject":"Cash"},{"rule_id":"R7","status":"pass","measured":0.010495129754865294,"limit":0.015,"message":"One-day VaR (95%) is 1.05% of the portfolio (limit 1.50%).","subject":"Portfolio"},{"rule_id":"R8","status":"pass","measured":3.0085679068202014,"limit":4.0,"message":"Portfolio duration is 3.01 (limit 4.00).","subject":"Portfolio"},{"rule_id":"R9","status":"breach","measured":0.13012834513596128,"limit":0.1,"message":"13.0% of the portfolio would take more than 5 days to sell (limit 10%).","subject":"Portfolio"},{"rule_id":"R10","status":"warning","measured":11.0,"limit":10,"message":"The portfolio holds 11 instruments (minimum 10).","subject":"Portfolio"}],"plain":"1 rule breach needs attention. 13.0% of the portfolio would take more than 5 days to sell (limit 10%).","rules":[{"id":"R1","type":"max_position_weight","limit":0.21,"description":"No single holding above 21%"},{"id":"R2","type":"max_group_weight","limit":0.6,"description":"Equities at most 60%","dimension":"asset_class","group":"Equity"},{"id":"R3","type":"min_group_weight","limit":0.3,"description":"Bonds at least 30%","dimension":"asset_class","group":"Fixed Income"},{"id":"R4","type":"exclusion","limit":0,"description":"No tobacco companies","tag":"tobacco"},{"id":"R5","type":"max_group_weight","limit":0.06,"description":"Energy at most 6%","dimension":"sector","group":"Energy"},{"id":"R6","type":"min_cash","limit":0.02,"description":"Keep at least 2% in cash"},{"id":"R7","type":"max_var","limit":0.015,"description":"One-day 95% VaR under 1.5%","confidence":0.95},{"id":"R8","type":"max_duration","limit":4.0,"description":"Portfolio duration under 4"},{"id":"R9","type":"max_illiquid","limit":0.1,"description":"At most 10% needing more than 5 days to sell","days":5},{"id":"R10","type":"min_holdings","limit":10,"description":"At least 10 holdings"}]},"GET /api/private":{"funds":[{"id":"PE1","name":"Summit Buyout Fund IV","strategy":"Private Equity","vintage":2021,"commitment":1500000,"paid_in":1330000,"distributed":760000,"nav":1105000,"unfunded":170000,"as_of":"2026-06-30","irr":{"key":"irr","value":0.10654804500670206,"label":"IRR","meaning":"The annual return earned on the cash actually invested in a private fund.","formula":"rate that sets the net present value of all cash flows to zero","fmt":"pct"},"tvpi":{"key":"tvpi","value":1.4022556390977443,"label":"TVPI","meaning":"Total value for every dollar paid in, counting both cash returned and what remains.","formula":"(distributions + remaining value) \u00f7 paid-in capital","fmt":"ratio"},"dpi":{"key":"dpi","value":0.5714285714285714,"label":"DPI","meaning":"Cash actually returned for every dollar paid in.","formula":"distributions \u00f7 paid-in capital","fmt":"ratio"},"rvpi":{"key":"rvpi","value":0.8308270676691729,"label":"RVPI","meaning":"Value still held in the fund for every dollar paid in.","formula":"remaining value \u00f7 paid-in capital","fmt":"ratio"},"plain":"Summit Buyout Fund IV: $1.33m paid in of a $1.50m commitment. Every dollar paid in is now worth 1.40 dollars (0.57 already returned in cash), an IRR of 10.7%.","pme":1.2052703670566185,"forecast":[{"year":2027,"calls":85000.0,"distributions":338948.0105266883,"net_cash_flow":253948.0105266883,"nav":961551.9894733117,"unfunded":85000.0},{"year":2028,"calls":42500.0,"distributions":433621.24892135576,"net_cash_flow":391121.24892135576,"nav":666585.9394992872,"unfunded":42500.0},{"year":2029,"calls":21250.0,"distributions":419733.66295617673,"net_cash_flow":398483.66295617673,"nav":334760.8704930392,"unfunded":21250.0},{"year":2030,"calls":10625.0,"distributions":282965.6035897393,"net_cash_flow":272340.6035897393,"nav":95896.35395260382,"unfunded":10625.0},{"year":2031,"calls":5312.5,"distributions":105485.98934786422,"net_cash_flow":100173.48934786422,"nav":5312.5,"unfunded":5312.5},{"year":2032,"calls":2656.25,"distributions":5843.750000000001,"net_cash_flow":3187.500000000001,"nav":2656.249999999999,"unfunded":2656.25}]},{"id":"PC1","name":"Meridian Direct Lending II","strategy":"Private Credit","vintage":2023,"commitment":1000000,"paid_in":850000,"distributed":272000,"nav":905000,"unfunded":150000,"as_of":"2026-06-30","irr":{"key":"irr","value":0.14795445822222766,"label":"IRR","meaning":"The annual return earned on the cash actually invested in a private fund.","formula":"rate that sets the net present value of all cash flows to zero","fmt":"pct"},"tvpi":{"key":"tvpi","value":1.3847058823529412,"label":"TVPI","meaning":"Total value for every dollar paid in, counting both cash returned and what remains.","formula":"(distributions + remaining value) \u00f7 paid-in capital","fmt":"ratio"},"dpi":{"key":"dpi","value":0.32,"label":"DPI","meaning":"Cash actually returned for every dollar paid in.","formula":"distributions \u00f7 paid-in capital","fmt":"ratio"},"rvpi":{"key":"rvpi","value":1.0647058823529412,"label":"RVPI","meaning":"Value still held in the fund for every dollar paid in.","formula":"remaining value \u00f7 paid-in capital","fmt":"ratio"},"plain":"Meridian Direct Lending II: $850,000 paid in of a $1.00m commitment. Every dollar paid in is now worth 1.38 dollars (0.32 already returned in cash), an IRR of 14.8%.","pme":1.2223728664514406,"forecast":[{"year":2027,"calls":75000.0,"distributions":100737.51714232392,"net_cash_flow":25737.517142323923,"nav":969762.4828576761,"unfunded":75000.0},{"year":2028,"calls":37500.0,"distributions":188574.54763646564,"net_cash_flow":151074.54763646564,"nav":915664.1835069782,"unfunded":37500.0},{"year":2029,"calls":18750.0,"distributions":280871.08896853816,"net_cash_flow":262121.08896853816,"nav":745109.512889138,"unfunded":18750.0},{"year":2030,"calls":9375.0,"distributions":336014.40286046924,"net_cash_flow":326639.40286046924,"nav":492981.06131758256,"unfunded":9375.0},{"year":2031,"calls":4687.5,"distributions":310418.7087868717,"net_cash_flow":305731.2087868717,"nav":236547.95866246911,"unfunded":4687.5},{"year":2032,"calls":2343.75,"distributions":199948.5059357858,"net_cash_flow":197604.7559357858,"nav":62597.99859293029,"unfunded":2343.75}]}],"combined":{"public_value":9999478.471301738,"private_value":2010000.0,"total_value":12009478.471301738,"cash":300000.0,"private_share":0.16736780075863952,"allocation":{"Fixed Income":0.37465082981941034,"Equity":0.3663916044004874,"Private Equity":0.0920106566359685,"Private Credit":0.07535714412267103,"Real Estate":0.03330702345741455,"Commodity":0.03330247279410201,"Cash":0.024980268769946197},"unfunded_commitments":320000.0,"unfunded_vs_cash":1.0666666666666667,"plain":"Including private funds the total is $12.01m, of which 17% is private. Outstanding commitments of $320,000 could be called at short notice, against $300,000 of cash on hand."}},"GET /api/commentary":{"commentary":"The portfolio fell 0.14% on 2026-10-23, to $10.00m. Northwind Technologies helped most ($17,301), while Helix Health held it back (-$20,104). Recent volatility of 11.4% is in line with its long-run level of 10.7%. On a typical bad day (1 in 20) the portfolio could lose about $104,946; on the very worst days the average loss is closer to $134,427. 1 rule breach needs attention. 13.0% of the portfolio would take more than 5 days to sell (limit 10%).","anomalies":[{"type":"concentration","severity":"info","subject":"US Treasury 4.25% 2036","message":"US Treasury 4.25% 2036 is 20.0% of the portfolio."},{"type":"compliance","severity":"breach","subject":"Portfolio","message":"13.0% of the portfolio would take more than 5 days to sell (limit 10%)."}]},"GET /api/glossary":{"nav":{"label":"Net asset value","meaning":"What the whole portfolio is worth today, including cash.","formula":"\u03a3 quantity \u00d7 price \u00d7 FX rate + cash","fmt":"money"},"volatility":{"label":"Volatility (annual)","meaning":"How much the portfolio typically swings in a year. Higher means a bumpier ride.","formula":"standard deviation of daily returns \u00d7 \u221a252","fmt":"pct"},"ewma_volatility":{"label":"Recent volatility (EWMA)","meaning":"Volatility with recent days weighted more heavily, so it reacts faster to change.","formula":"\u03c3\u00b2\u209c = \u03bb\u03c3\u00b2\u209c\u208b\u2081 + (1\u2212\u03bb)r\u00b2\u209c, \u03bb = 0.94, then \u00d7 \u221a252","fmt":"pct"},"var_95":{"label":"Value at Risk (95%, 1 day)","meaning":"On 19 days out of 20, the portfolio should not lose more than this.","formula":"5th percentile of daily returns (historical simulation)","fmt":"pct"},"var_99":{"label":"Value at Risk (99%, 1 day)","meaning":"On 99 days out of 100, the portfolio should not lose more than this.","formula":"1st percentile of daily returns (historical simulation)","fmt":"pct"},"es_95":{"label":"Expected Shortfall (95%, 1 day)","meaning":"On the worst 1-in-20 days, this is the average loss. It describes how bad bad days get.","formula":"mean of returns below the 95% VaR threshold","fmt":"pct"},"max_drawdown":{"label":"Maximum drawdown","meaning":"The largest fall from a high point before the portfolio recovered.","formula":"min over time of (value \u00f7 running peak \u2212 1)","fmt":"pct"},"beta":{"label":"Beta to benchmark","meaning":"If the benchmark moves 1%, the portfolio has tended to move this much.","formula":"covariance(portfolio, benchmark) \u00f7 variance(benchmark)","fmt":"ratio"},"tracking_error":{"label":"Tracking error","meaning":"How far, in a typical year, the portfolio's return drifts from the benchmark's.","formula":"standard deviation of (portfolio \u2212 benchmark) daily returns \u00d7 \u221a252","fmt":"pct"},"sharpe":{"label":"Sharpe ratio","meaning":"Return earned for each unit of risk taken. Above 1 is generally good.","formula":"(annual return \u2212 risk-free rate) \u00f7 annual volatility","fmt":"ratio"},"sortino":{"label":"Sortino ratio","meaning":"Like Sharpe, but only counts the bad swings as risk.","formula":"(return \u2212 risk-free) \u00f7 downside deviation","fmt":"ratio"},"information_ratio":{"label":"Information ratio","meaning":"How consistently the portfolio beats its benchmark. Above 0.5 is respectable.","formula":"mean active return \u00f7 tracking error (annualised)","fmt":"ratio"},"diversification_ratio":{"label":"Diversification ratio","meaning":"How much holdings offset one another. 1.0 means no benefit; higher is better.","formula":"\u03a3 |w\u1d62| \u03c3\u1d62 \u00f7 \u03c3 portfolio","fmt":"ratio"},"effective_holdings":{"label":"Effective number of holdings","meaning":"How many equally sized holdings would give the same concentration.","formula":"1 \u00f7 \u03a3 w\u1d62\u00b2 (inverse Herfindahl)","fmt":"number"},"duration":{"label":"Portfolio duration","meaning":"If interest rates rise by 1 percentage point, the bond holdings lose roughly this share of the whole portfolio.","formula":"\u03a3 weight\u1d62 \u00d7 modified duration\u1d62","fmt":"number"},"dv01":{"label":"DV01","meaning":"Money lost if all interest rates rise by 0.01 percentage points.","formula":"\u03a3 position face \u00f7 100 \u00d7 price change per 1bp","fmt":"money"},"liquidity_days":{"label":"Days to liquidate (90%)","meaning":"Trading days needed to sell 90% of the portfolio without moving prices, trading no more than 20% of daily volume.","formula":"quantity \u00f7 (20% \u00d7 average daily volume), value-weighted","fmt":"days"},"twr":{"label":"Time-weighted return","meaning":"The return the investment decisions earned, ignoring when money came in or out.","formula":"\u03a0(1 + daily return) \u2212 1","fmt":"pct"},"mwr":{"label":"Money-weighted return","meaning":"The investor's own annual return, including the timing of their deposits.","formula":"internal rate of return of all cash flows","fmt":"pct"},"r_squared":{"label":"R-squared","meaning":"Share of the portfolio's movement explained by the factors.","formula":"1 \u2212 residual variance \u00f7 total variance","fmt":"pct"},"irr":{"label":"IRR","meaning":"The annual return earned on the cash actually invested in a private fund.","formula":"rate that sets the net present value of all cash flows to zero","fmt":"pct"},"tvpi":{"label":"TVPI","meaning":"Total value for every dollar paid in, counting both cash returned and what remains.","formula":"(distributions + remaining value) \u00f7 paid-in capital","fmt":"ratio"},"dpi":{"label":"DPI","meaning":"Cash actually returned for every dollar paid in.","formula":"distributions \u00f7 paid-in capital","fmt":"ratio"},"rvpi":{"label":"RVPI","meaning":"Value still held in the fund for every dollar paid in.","formula":"remaining value \u00f7 paid-in capital","fmt":"ratio"}},"GET /api/trading/orders":[],"GET /api/live/benchmark?ticks=200000":{"ticks":200000,"seconds":0.724079200999995,"ticks_per_second":276212.8779887456,"latency":{"p50_us":2.84,"p95_us":3.988,"p99_us":6.690050000000011,"max_us":1223.003,"mean_us":3.26628386},"snapshot_ms":6.425597000088601,"nav_end":10000049.54835563,"nav_check":10000049.548355686,"alerts":0,"plain":"Processed 200,000 ticks in 0.72 seconds \u2014 about 276,213 ticks a second on one CPU core. Of the last 50,000 ticks, half were handled within 2.8 \u00b5s and 99% within 6.7 \u00b5s. A full live risk snapshot takes 6.43 ms."},"GET /api/allocation?by=asset_class":{"Fixed Income":0.4499595741802532,"Equity":0.4400401578684073,"Real Estate":0.0400020843389935,"Commodity":0.039996618944649294,"Cash":0.030001564667696694},"GET /api/allocation?by=sector":{"Government":0.31983122904429195,"Corporate":0.13012834513596125,"Technology":0.12701826810260972,"Industrials":0.07720739252731265,"Consumer":0.07260385345895175,"Healthcare":0.07001182672563032,"Energy":0.05539783554990066,"Real Estate":0.0400020843389935,"Commodities":0.039996618944649294,"Cash":0.030001564667696694,"Financials":0.019800514121143968,"Other":0.01800046738285815},"GET /api/allocation?by=country":{"United States":0.5898585623502969,"Germany":0.19013739083211528,"Japan":0.06000352629095104,"Global":0.039996618944649294,"Cash":0.030001564667696694,"China":0.024300630966858507,"India":0.01800046738285815,"Taiwan":0.016200420644572337,"Other EM":0.016200420644572337,"Korea":0.009900257060571984,"Brazil":0.0054001402148574455},"GET /api/allocation?by=currency":{"USD":0.7498590828769336,"EUR":0.19013739083211528,"JPY":0.06000352629095104},"POST /api/trading/optimise min_variance":{"method":"min_variance","weights":{"NWT":0.01,"HLX":0.055278,"ORB":0.01,"KST":0.01,"SAK":0.06472,"EMF":0.01,"HRB":0.01,"GLDX":0.2,"UST10":0.2,"CORP5":0.2,"BUND8":0.2},"proposed":{"expected_return":0.06614276779066618,"volatility":0.06365116870036354,"sharpe":0.4107193681506882},"current":{"expected_return":0.09203563687805003,"volatility":0.10716087036288706,"sharpe":0.4855843061169414},"plain":"The min variance mix has expected volatility 6.4% (now 10.7%) and expected return 6.6% (now 9.2%). Expected returns are estimates, not promises."},"POST /api/trading/rebalance min_variance":{"trades":[{"id":"BUND8","name":"German Bund 2.50% 2034","side":"BUY","quantity":9000.0,"value":794937.7067031525,"est_cost":818.7996025916873},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","side":"BUY","quantity":7400.0,"value":697753.2850818431,"est_cost":876.7476555943186},{"id":"EMF","name":"Emerging Markets Equity ETF","side":"SELL","quantity":5612.0,"value":-800042.4088508402,"est_cost":836.2616999186796},{"id":"GLDX","name":"Gold Bullion ETF","side":"BUY","quantity":7929.0,"value":1599983.1090114259,"est_cost":1652.4412793394386},{"id":"HLX","name":"Helix Health","side":"SELL","quantity":399.0,"value":-147172.0863423076,"est_cost":149.68219102304215},{"id":"HRB","name":"Harbour REIT","side":"SELL","quantity":3772.0,"value":-300019.87053420494,"est_cost":436.4804491173072},{"id":"KST","name":"Kestrel Industrials","side":"SELL","quantity":4753.0,"value":-600048.5023022019,"est_cost":674.3223098355495},{"id":"NWT","name":"Northwind Technologies","side":"SELL","quantity":3419.0,"value":-900084.8314589435,"est_cost":953.0069388659581},{"id":"ORB","name":"Orbital Energy","side":"SELL","quantity":3186.0,"value":-400010.9235766583,"est_cost":422.7631455674007},{"id":"SAK","name":"Sakura Consumer","side":"BUY","quantity":1271.0,"value":47144.228798343895,"est_cost":49.35553809245499}],"trade_map":{"BUND8":9000.0,"CORP5":7400.0,"EMF":-5612.0,"GLDX":7929.0,"HLX":-399.0,"HRB":-3772.0,"KST":-4753.0,"NWT":-3419.0,"ORB":-3186.0,"SAK":1271.0},"turnover":0.3143762432562871,"estimated_cost":6869.860809945837,"cash_after":307560.29347039084,"weights_after":{"GLDX":0.20000327465207832,"CORP5":0.1999073128175637,"UST10":0.19970104378634607,"BUND8":0.19962810197276304,"SAK":0.06471819505429173,"HLX":0.05529385050670172,"NWT":0.010004389436894592,"KST":0.009999225755589211,"HRB":0.009998532514240373,"ORB":0.009994516696809244,"EMF":0.009993923360829689},"plain":"10 trades are needed, turning over 31.4% of the portfolio, at an estimated cost of $6,870 (0.069% of NAV).","compliance":{"approved":true,"new_breaches":[],"plain":"Trades approved: no new breaches."}},"POST /api/trading/optimise max_sharpe":{"method":"max_sharpe","weights":{"NWT":0.01,"HLX":0.2,"ORB":0.01,"KST":0.011832,"SAK":0.117517,"EMF":0.2,"HRB":0.01,"GLDX":0.190649,"UST10":0.01,"CORP5":0.2,"BUND8":0.01},"proposed":{"expected_return":0.11234155457452713,"volatility":0.11313687493602056,"sharpe":0.6394162346753577},"current":{"expected_return":0.09203563687805003,"volatility":0.10716087036288706,"sharpe":0.4855843061169414},"plain":"The max sharpe mix has expected volatility 11.3% (now 10.7%) and expected return 11.2% (now 9.2%). Expected returns are estimates, not promises."},"POST /api/trading/rebalance max_sharpe":{"trades":[{"id":"BUND8","name":"German Bund 2.50% 2034","side":"SELL","quantity":12500.0,"value":-1104080.148198823,"est_cost":1143.1378065200042},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","side":"BUY","quantity":7400.0,"value":697753.2850818431,"est_cost":876.7476555943186},{"id":"EMF","name":"Emerging Markets Equity ETF","side":"BUY","quantity":7716.0,"value":1099987.0325540062,"est_cost":1158.3788214306219},{"id":"GLDX","name":"Gold Bullion ETF","side":"BUY","quantity":7465.0,"value":1506353.122558998,"est_cost":1554.2746034347747},{"id":"HLX","name":"Helix Health","side":"BUY","quantity":3524.0,"value":1299835.6698503557,"est_cost":1365.720637896011},{"id":"HRB","name":"Harbour REIT","side":"SELL","quantity":3772.0,"value":-300019.87053420494,"est_cost":436.4804491173072},{"id":"KST","name":"Kestrel Industrials","side":"SELL","quantity":4608.0,"value":-581742.7937320737,"est_cost":652.6438445893865},{"id":"NWT","name":"Northwind Technologies","side":"SELL","quantity":3419.0,"value":-900084.8314589435,"est_cost":953.0069388659581},{"id":"ORB","name":"Orbital Energy","side":"SELL","quantity":3186.0,"value":-400010.9235766583,"est_cost":422.7631455674007},{"id":"SAK","name":"Sakura Consumer","side":"BUY","quantity":15505.0,"value":575115.0806595768,"est_cost":669.3341524205723},{"id":"UST10","name":"US Treasury 4.25% 2036","side":"SELL","quantity":20800.0,"value":-1896605.0589585165,"est_cost":1957.8692340386515}],"trade_map":{"BUND8":-12500.0,"CORP5":7400.0,"EMF":7716.0,"GLDX":7465.0,"HLX":3524.0,"HRB":-3772.0,"KST":-4608.0,"NWT":-3419.0,"ORB":-3186.0,"SAK":15505.0,"UST10":-20800.0},"turnover":0.51810641159444,"estimated_cost":11190.357289475007,"cash_after":303499.4357544393,"weights_after":{"EMF":0.20000677721694676,"HLX":0.20000217308027798,"CORP5":0.19990731281756366,"GLDX":0.19063978767411802,"SAK":0.11751803390353734,"KST":0.011829892087104912,"UST10":0.010030646034930622,"NWT":0.01000438943689459,"HRB":0.009998532514240372,"ORB":0.009994516696809242,"BUND8":0.009716412042922094},"plain":"11 trades are needed, turning over 51.8% of the portfolio, at an estimated cost of $11,190 (0.112% of NAV).","compliance":{"approved":false,"new_breaches":[{"rule_id":"R3","status":"breach","measured":0.21965437089541637,"limit":0.3,"message":"Fixed Income is 22.0% of the portfolio; the rule says at least 30%.","subject":"Fixed Income"}],"plain":"Trades blocked. Fixed Income is 22.0% of the portfolio; the rule says at least 30%."}},"POST /api/trading/optimise risk_parity":{"method":"risk_parity","weights":{"NWT":0.034032,"HLX":0.053682,"ORB":0.04159,"KST":0.038978,"SAK":0.054315,"EMF":0.041824,"HRB":0.040856,"GLDX":0.133443,"UST10":0.157175,"CORP5":0.2,"BUND8":0.174104},"proposed":{"expected_return":0.07736807025459144,"volatility":0.07801595211957095,"sharpe":0.4789798655192897},"current":{"expected_return":0.09203563687805003,"volatility":0.10716087036288706,"sharpe":0.4855843061169414},"plain":"The risk parity mix has expected volatility 7.8% (now 10.7%) and expected return 7.7% (now 9.2%). Expected returns are estimates, not promises."},"POST /api/trading/rebalance risk_parity":{"trades":[{"id":"BUND8","name":"German Bund 2.50% 2034","side":"BUY","quantity":6100.0,"value":538791.1123210256,"est_cost":552.1059517947211},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","side":"BUY","quantity":7400.0,"value":697753.2850818431,"est_cost":876.7476555943186},{"id":"EMF","name":"Emerging Markets Equity ETF","side":"SELL","quantity":3379.0,"value":-481707.6442457215,"est_cost":498.62941236602},{"id":"GLDX","name":"Gold Bullion ETF","side":"BUY","quantity":4631.0,"value":934483.7656491251,"est_cost":957.8989555113407},{"id":"HLX","name":"Helix Health","side":"SELL","quantity":443.0,"value":-163401.58959810092,"est_cost":166.33814419254358},{"id":"HRB","name":"Harbour REIT","side":"BUY","quantity":107.0,"value":8510.637896914086,"est_cost":9.162604498706436},{"id":"KST","name":"Kestrel Industrials","side":"SELL","quantity":2458.0,"value":-310313.32183017296,"est_cost":337.93542762486516},{"id":"NWT","name":"Northwind Technologies","side":"SELL","quantity":2506.0,"value":-659728.7474805828,"est_cost":692.9380747954731},{"id":"ORB","name":"Orbital Energy","side":"SELL","quantity":670.0,"value":-84120.31349540522,"est_cost":86.31446879566549},{"id":"SAK","name":"Sakura Consumer","side":"SELL","quantity":1534.0,"value":-56899.48621295006,"est_cost":59.831521581769074},{"id":"UST10","name":"US Treasury 4.25% 2036","side":"SELL","quantity":4700.0,"value":-428559.7969762032,"est_cost":435.1402891141535}],"trade_map":{"BUND8":6100.0,"CORP5":7400.0,"EMF":-3379.0,"GLDX":4631.0,"HLX":-443.0,"HRB":107.0,"KST":-2458.0,"NWT":-2506.0,"ORB":-670.0,"SAK":-1534.0,"UST10":-4700.0},"turnover":0.21822486609243638,"estimated_cost":4673.042505869576,"cash_after":305192.098890229,"weights_after":{"CORP5":0.1999073128175637,"BUND8":0.1740121065868775,"UST10":0.15684282890982432,"GLDX":0.13344986936476583,"SAK":0.054313280907029256,"HLX":0.05367081553519079,"EMF":0.0418290601150846,"ORB":0.04158522525104549,"HRB":0.0408531925164189,"KST":0.03897425493371704,"NWT":0.03404125142606502},"plain":"11 trades are needed, turning over 21.8% of the portfolio, at an estimated cost of $4,673 (0.047% of NAV).","compliance":{"approved":true,"new_breaches":[],"plain":"Trades approved: no new breaches."}},"POST /api/trading/optimise mean_variance":{"method":"mean_variance","weights":{"NWT":0.01,"HLX":0.2,"ORB":0.01,"KST":0.053575,"SAK":0.170096,"EMF":0.2,"HRB":0.035705,"GLDX":0.121893,"UST10":0.01,"CORP5":0.148729,"BUND8":0.01},"proposed":{"expected_return":0.12180169568746106,"volatility":0.13018040849634355,"sharpe":0.6283717852195762},"current":{"expected_return":0.09203563687805003,"volatility":0.10716087036288706,"sharpe":0.4855843061169414},"plain":"The mean variance mix has expected volatility 13.0% (now 10.7%) and expected return 12.2% (now 9.2%). Expected returns are estimates, not promises."},"POST /api/trading/rebalance mean_variance":{"trades":[{"id":"BUND8","name":"German Bund 2.50% 2034","side":"SELL","quantity":12500.0,"value":-1104080.148198823,"est_cost":1143.1378065200042},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","side":"BUY","quantity":2000.0,"value":188581.9689410387,"est_cost":213.7318992674417},{"id":"EMF","name":"Emerging Markets Equity ETF","side":"BUY","quantity":7716.0,"value":1099987.0325540062,"est_cost":1158.3788214306219},{"id":"GLDX","name":"Gold Bullion ETF","side":"BUY","quantity":4058.0,"value":818858.8039309328,"est_cost":838.0655403379769},{"id":"HLX","name":"Helix Health","side":"BUY","quantity":3524.0,"value":1299835.6698503557,"est_cost":1365.720637896011},{"id":"HRB","name":"Harbour REIT","side":"SELL","quantity":540.0,"value":-42950.882844239306,"est_cost":50.34251458909429},{"id":"KST","name":"Kestrel Industrials","side":"SELL","quantity":1302.0,"value":-164372.63833315103,"est_cost":175.02143275264442},{"id":"NWT","name":"Northwind Technologies","side":"SELL","quantity":3419.0,"value":-900084.8314589435,"est_cost":953.0069388659581},{"id":"ORB","name":"Orbital Energy","side":"SELL","quantity":3186.0,"value":-400010.9235766583,"est_cost":422.7631455674007},{"id":"SAK","name":"Sakura Consumer","side":"BUY","quantity":29679.0,"value":1100860.3985098728,"est_cost":1350.3802257880545},{"id":"UST10","name":"US Treasury 4.25% 2036","side":"SELL","quantity":20800.0,"value":-1896605.0589585165,"est_cost":1957.8692340386515}],"trade_map":{"BUND8":-12500.0,"CORP5":2000.0,"EMF":7716.0,"GLDX":4058.0,"HLX":3524.0,"HRB":-540.0,"KST":-1302.0,"NWT":-3419.0,"ORB":-3186.0,"SAK":29679.0,"UST10":-20800.0},"turnover":0.4508349301932543,"estimated_cost":9628.41819705386,"cash_after":299980.6095841257,"weights_after":{"EMF":0.20000677721694674,"HLX":0.20000217308027793,"SAK":0.17009530774428533,"CORP5":0.14898752559044837,"GLDX":0.1218867701441381,"KST":0.05356908444566289,"HRB":0.035706772041706455,"UST10":0.01003064603493062,"NWT":0.010004389436894589,"ORB":0.009994516696809239,"BUND8":0.009716412042922092},"plain":"11 trades are needed, turning over 45.1% of the portfolio, at an estimated cost of $9,628 (0.096% of NAV).","compliance":{"approved":false,"new_breaches":[{"rule_id":"R2","status":"breach","measured":0.6436722486208768,"limit":0.6,"message":"Equity is 64.4% of the portfolio; the rule says at most 60%.","subject":"Equity"},{"rule_id":"R3","status":"breach","measured":0.16873458366830107,"limit":0.3,"message":"Fixed Income is 16.9% of the portfolio; the rule says at least 30%.","subject":"Fixed Income"}],"plain":"Trades blocked. Equity is 64.4% of the portfolio; the rule says at most 60%. Fixed Income is 16.9% of the portfolio; the rule says at least 30%."}},"answers":{"How much is my portfolio worth?":{"answer":"Global Balanced Fund is worth $10.00m across 11 holdings, split Fixed Income 45%, Equity 44%, Real Estate 4%, Commodity 4%. The largest holding is US Treasury 4.25% 2036 at 20.0% of the portfolio.","sources":[{"label":"Net asset value","value":9999478.471301738},{"label":"Holdings","value":11}],"intent":"overview","engine":"built-in"},"How much could I lose?":{"answer":"On a typical bad day (1 in 20) the portfolio could lose about $104,946; on the very worst days the average loss is closer to $134,427. The largest fall from a peak in the history of today's holdings was 12.6%.","sources":[{"label":"VaR 95% (1 day)","value":0.010495129754865294},{"label":"Expected Shortfall 95%","value":0.013443362046343162},{"label":"Maximum drawdown","value":0.12622194296240563}],"intent":"downside","engine":"built-in"},"Where is my risk coming from?":{"answer":"Most of the risk comes from Northwind Technologies (23% of the risk, 10% of the money), Emerging Markets Equity ETF (16% of the risk, 9% of the money) and Kestrel Industrials (13% of the risk, 7% of the money). A holding can carry far more risk than its size suggests when it is volatile or moves with the rest of the portfolio.","sources":[{"label":"Risk share: Northwind Technologies","value":0.234460792028506},{"label":"Risk share: Emerging Markets Equity ETF","value":0.16091201862588347},{"label":"Risk share: Kestrel Industrials","value":0.13015096935280412}],"intent":"risk_sources","engine":"built-in"},"How am I doing against the benchmark?":{"answer":"Since 2020-09-07 the portfolio has returned 4.0% a year against 5.6% for the benchmark, behind by 1.7% a year, with a Sharpe ratio of 0.04. This year so far: -6.1%; over the last 12 months: +0.8%.","sources":[{"label":"Time-weighted return","value":0.2811032214150371},{"label":"Money-weighted return","value":0.04124746818149573},{"label":"Volatility (annual)","value":0.0967362023580158},{"label":"Sharpe ratio","value":0.03841971049967281},{"label":"Sortino ratio","value":0.05513504391147261},{"label":"Maximum drawdown","value":0.12622194296240563},{"label":"Information ratio","value":-0.3588883542506019},{"label":"Beta to benchmark","value":0.7621004332349697}],"intent":"performance","engine":"built-in"},"Why did the portfolio move today?":{"answer":"The portfolio lost $13,836 on the latest day. The biggest movers were Helix Health (-$20,104), Northwind Technologies ($17,301), Sakura Consumer (-$9,569). Broad markets moved -0.37% and bond yields changed by +0.1 basis points.","sources":[{"label":"Helix Health","value":-20103.65909224441},{"label":"Northwind Technologies","value":17300.58715560378},{"label":"Sakura Consumer","value":-9569.05071085775}],"intent":"why_moved","engine":"built-in"},"How liquid is the portfolio?":{"answer":"About 88% of the portfolio could be sold within a day and 95% within a week, without trading more than 20% of daily volume. Selling 90% would take about 2.0 days. The slowest holding to sell is Atlas Corp 5.10% 2031 (about 8.6 days).","sources":[{"label":"1 day","value":0.8849589992276284},{"label":"5 days","value":0.9453083766819873},{"label":"20 days","value":1.0}],"intent":"liquidity","engine":"built-in"},"Am I breaking any rules?":{"answer":"1 rule breach needs attention. 13.0% of the portfolio would take more than 5 days to sell (limit 10%).","sources":[{"label":"pass","value":16},{"label":"warning","value":3},{"label":"breach","value":1}],"intent":"compliance","engine":"built-in"},"How exposed am I to interest rates?":{"answer":"If all interest rates rose by 1 percentage point, the bonds would lose about $300,841 (3.01% of the portfolio).","sources":[{"label":"Duration","value":3.0085679068202014},{"label":"DV01","value":3008.411389707657}],"intent":"rates","engine":"built-in"},"Is the portfolio concentrated?":{"answer":"The three largest holdings are US Treasury 4.25% 2036 (20%), Atlas Corp 5.10% 2031 (13%), German Bund 2.50% 2034 (12%). The portfolio behaves like roughly 9 equally sized holdings, and diversification cuts its risk by about 33% compared with holding the same assets in isolation.","sources":[{"label":"Effective holdings","value":8.675712115632958},{"label":"Diversification ratio","value":1.503028849419774}],"intent":"concentration","engine":"built-in"},"How risky is it?":{"answer":"The portfolio's volatility is about 10.7% a year: in a typical year its value swings within roughly \u00b111% of where it started. Measured on recent weeks only, it is 11.4%.","sources":[{"label":"Volatility","value":0.10716087036288706},{"label":"EWMA volatility","value":0.11423018468403245}],"intent":"volatility","engine":"built-in"},"What about my private funds?":{"answer":"Including private funds the total is $12.01m, of which 17% is private. Outstanding commitments of $320,000 could be called at short notice, against $300,000 of cash on hand.","sources":[{"label":"Private share","value":0.16736780075863952},{"label":"Unfunded","value":320000.0}],"intent":"private","engine":"built-in"},"What happens in a 2008 crisis?":{"answer":"Under 'Global Financial Crisis (2008-style)', the portfolio would lose about $1.76m (-17.6%). The biggest hit comes from Northwind Technologies (-$400,049), while US Treasury 4.25% 2036 cushions the blow ($255,550).","intent":"what_if","sources":[{"label":"Scenario P&L","value":-1755004.421716789}],"engine":"built-in"},"What happens in a 2022-style inflation shock?":{"intent":"unknown","engine":"built-in","sources":[],"answer":"I am not sure how to answer that yet. Try asking: 'How much could I lose?', 'Where is my risk coming from?', 'What if equities fall 20%?', 'How am I doing against the benchmark?', 'How liquid is the portfolio?' or 'Am I breaking any rules?'"},"What does Sharpe ratio mean?":{"answer":"Sharpe ratio: Return earned for each unit of risk taken. Above 1 is generally good. (Calculated as: (annual return \u2212 risk-free rate) \u00f7 annual volatility.)","intent":"define","sources":[],"engine":"built-in"},"What is VaR?":{"answer":"Value at Risk (95%, 1 day): On 19 days out of 20, the portfolio should not lose more than this. (Calculated as: 5th percentile of daily returns (historical simulation).)","intent":"define","sources":[],"engine":"built-in"},"What is drawdown?":{"answer":"Maximum drawdown: The largest fall from a high point before the portfolio recovered. (Calculated as: min over time of (value \u00f7 running peak \u2212 1).)","intent":"define","sources":[],"engine":"built-in"},"What is duration?":{"answer":"Portfolio duration: If interest rates rise by 1 percentage point, the bond holdings lose roughly this share of the whole portfolio. (Calculated as: \u03a3 weight\u1d62 \u00d7 modified duration\u1d62.)","intent":"define","sources":[],"engine":"built-in"},"What is TVPI?":{"answer":"TVPI: Total value for every dollar paid in, counting both cash returned and what remains. (Calculated as: (distributions + remaining value) \u00f7 paid-in capital.)","intent":"define","sources":[],"engine":"built-in"}},"meta":{"instruments":[{"id":"NWT","name":"Northwind Technologies","asset_class":"Equity","sector":"Technology","country":"United States","currency":"USD","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":1000123.5082516896,"weight":0.1000175670283225},{"id":"HLX","name":"Helix Health","asset_class":"Equity","sector":"Healthcare","country":"United States","currency":"USD","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":700081.7540794482,"weight":0.07001182672563032},{"id":"ORB","name":"Orbital Energy","asset_class":"Equity","sector":"Energy","country":"United States","currency":"USD","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":499950.8781174681,"weight":0.04999769533504322},{"id":"KST","name":"Kestrel Industrials","asset_class":"Equity","sector":"Industrials","country":"Germany","currency":"EUR","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":700035.5449749021,"weight":0.0700072055741694},{"id":"SAK","name":"Sakura Consumer","asset_class":"Equity","sector":"Consumer","country":"Japan","currency":"JPY","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":600003.9693485529,"weight":0.06000352629095104},{"id":"EMF","name":"Emerging Markets Equity ETF","asset_class":"Equity","sector":"Diversified","country":"Emerging Markets","currency":"USD","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":899976.4303412962,"weight":0.09000233691429076},{"id":"HRB","name":"Harbour REIT","asset_class":"Real Estate","sector":"Real Estate","country":"United States","currency":"USD","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":399999.98115496204,"weight":0.0400020843389935},{"id":"GLDX","name":"Gold Bullion ETF","asset_class":"Commodity","sector":"Commodities","country":"Global","currency":"USD","coupon":null,"maturity":null,"freq":2,"ytm":null,"market_value":399945.33006187994,"weight":0.039996618944649294},{"id":"UST10","name":"US Treasury 4.25% 2036","asset_class":"Fixed Income","sector":"Government","country":"United States","currency":"USD","coupon":0.0425,"maturity":10,"freq":2,"ytm":0.05402811065606017,"market_value":1996906.2880380533,"weight":0.19970104378634604},{"id":"CORP5","name":"Atlas Corp 5.10% 2031","asset_class":"Fixed Income","sector":"Corporate","country":"United States","currency":"USD","coupon":0.051,"maturity":5,"freq":2,"ytm":0.06454097490251948,"market_value":1301215.585693167,"weight":0.13012834513596125},{"id":"BUND8","name":"German Bund 2.50% 2034","asset_class":"Fixed Income","sector":"Government","country":"Germany","currency":"EUR","coupon":0.025,"maturity":8,"freq":2,"ytm":0.03010763185779522,"market_value":1201239.2012403195,"weight":0.12013018525794589}],"cov":[[0.0004044531894125065,0.00012469394787519505,0.00016533854703312215,0.00016061416307251134,0.00012562236583269938,0.0001693564976021355,0.00015288690279501445,2.1046005695934133e-05,2.5639155059603378e-05,1.2613787998978497e-05,1.3574378174994791e-05],[0.00012469394787519505,0.00018226357604716112,0.00011451199534229941,0.00010693991646999375,8.26674172334861e-05,0.00010970240902366467,9.768365452416241e-05,1.2747138490944898e-05,1.0281597741526832e-05,4.91584550267727e-06,7.912614472680396e-06],[0.00016533854703312215,0.00011451199534229941,0.00030463472986333543,0.0001512314256031619,0.00011047569156540623,0.0001535467334431509,0.0001293246670705794,1.2592204575531937e-05,1.1143558815946853e-05,5.626357478820142e-06,5.797640072535494e-06],[0.00016061416307251134,0.00010693991646999375,0.0001512314256031619,0.0002901171208296495,0.00010957034335938907,0.00015605964842093086,0.00013319586811831125,1.6338300375922457e-05,1.3244494618748632e-05,5.554797069126722e-06,2.768380692482029e-05],[0.00012562236583269938,8.26674172334861e-05,0.00011047569156540623,0.00010957034335938907,0.00020771966161033258,0.00011649274313540255,9.72252035040904e-05,8.943936447782129e-06,7.855071098588177e-06,3.847575936835621e-06,1.9781877085289774e-06],[0.0001693564976021355,0.00010970240902366467,0.0001535467334431509,0.00015605964842093086,0.00011649274313540255,0.00021912274580612802,0.00014059103565967633,1.8208250918982196e-05,1.5506040748497564e-05,7.547748329456413e-06,9.22175225417189e-06],[0.00015288690279501445,9.768365452416241e-05,0.0001293246670705794,0.00013319586811831125,9.72252035040904e-05,0.00014059103565967633,0.00021938285565375904,2.09232171732019e-05,2.8407949292999874e-05,1.4083588051843642e-05,2.026379994770978e-05],[2.1046005695934133e-05,1.2747138490944898e-05,1.2592204575531937e-05,1.6338300375922457e-05,8.943936447782129e-06,1.8208250918982196e-05,2.09232171732019e-05,6.77871021605793e-05,9.989746135793508e-06,4.87424190001933e-06,5.495375512339538e-06],[2.5639155059603378e-05,1.0281597741526832e-05,1.1143558815946853e-05,1.3244494618748632e-05,7.855071098588177e-06,1.5506040748497564e-05,2.8407949292999874e-05,9.989746135793508e-06,2.5082223900358474e-05,1.2172262723749275e-05,1.597450324390131e-05],[1.2613787998978497e-05,4.91584550267727e-06,5.626357478820142e-06,5.554797069126722e-06,3.847575936835621e-06,7.547748329456413e-06,1.4083588051843642e-05,4.87424190001933e-06,1.2172262723749275e-05,7.114317322044174e-06,7.4582325705084936e-06],[1.3574378174994791e-05,7.912614472680396e-06,5.797640072535494e-06,2.768380692482029e-05,1.9781877085289774e-06,9.22175225417189e-06,2.026379994770978e-05,5.495375512339538e-06,1.597450324390131e-05,7.4582325705084936e-06,3.0034640852187453e-05]],"nav":9999478.471301738,"cash":300000.0,"base_currency":"USD","as_of":"2026-10-23"}}</script>
+<script>
+"use strict";
+/* ------------------------------------------------------------------ setup */
+const DEMO = (() => { const t = document.getElementById("demo-data").textContent.trim(); return t ? JSON.parse(t) : null; })();
+const $ = (s, el = document) => el.querySelector(s);
+const h = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = {
+  money(v) { if (v == null || !isFinite(v)) return "—"; const s = v < 0 ? "−" : ""; const a = Math.abs(v);
+    if (a >= 1e9) return s + "$" + (a / 1e9).toFixed(2) + "bn"; if (a >= 1e6) return s + "$" + (a / 1e6).toFixed(2) + "m";
+    if (a >= 1e3) return s + "$" + Math.round(a).toLocaleString("en-US"); return s + "$" + a.toFixed(2); },
+  pct(v, d = 1) { return v == null || !isFinite(v) ? "—" : (v < 0 ? "−" : "") + Math.abs(v * 100).toFixed(d) + "%"; },
+  spct(v, d = 1) { return v == null || !isFinite(v) ? "—" : (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(d) + "%"; },
+  smoney(v) { return v == null ? "—" : (v >= 0 ? "+" : "") + fmt.money(v); },
+  num(v, d = 2) { return v == null || !isFinite(v) ? "—" : (v < 0 ? "−" : "") + Math.abs(v).toFixed(d); },
+  value(v, f) { if (v == null) return "—"; if (f === "pct") return fmt.pct(v, 2); if (f === "money") return fmt.money(v);
+    if (f === "days") return v > 252 ? "over a year" : v.toFixed(1) + " days"; return fmt.num(v); },
+};
+const sign = (v) => (v >= 0 ? "pos" : "neg");
+
+async function api(path, opts = {}) {
+  const method = opts.method || "GET";
+  if (DEMO) {
+    const local = demoHandler(method, path, opts);
+    if (local !== undefined) return local;
+    const key = method + " " + path;
+    if (key in DEMO) return DEMO[key];
+    throw new Error("This part needs the full platform. Run it with: opp serve");
+  }
+  const r = await fetch(path, { method, headers: opts.body ? { "Content-Type": "application/json" } : {},
+    body: opts.body ? JSON.stringify(opts.body) : undefined });
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
+  return r.json();
+}
+
+/* ------------------------------------------------------------------ small renderers */
+function metricCard(m) {
+  return `<div class="metric"><div class="top"><span class="label">${h(m.label)}</span><span class="val">${fmt.value(m.value, m.fmt)}</span></div>
+    ${m.money != null ? `<div class="money">${fmt.money(m.money)} on today's value</div>` : ""}
+    <p>${h(m.meaning)}</p>
+    <details class="formula"><summary>How it is calculated</summary><code>${h(m.formula)}</code></details></div>`;
+}
+function bars(items, { format = (v) => fmt.pct(v), max, signed = false } = {}) {
+  const m = max ?? Math.max(1e-12, ...items.map((d) => Math.abs(d.value)));
+  return `<div class="bars">${items.map((d) => {
+    const w = Math.min(100, (Math.abs(d.value) / m) * (signed ? 50 : 100));
+    const style = signed ? (d.value < 0 ? `left:${50 - w}%;width:${w}%` : `left:50%;width:${w}%`) : `width:${w}%`;
+    const cls = signed ? (d.value < 0 ? "negf" : "posf") : "";
+    return `<div class="bar ${signed ? "signed" : ""}"><span class="lab" title="${h(d.label)}">${h(d.label)}</span>
+      <span class="track"><span class="fill ${cls}" style="${style}"></span></span><span class="val">${format(d.value)}</span></div>`;
+  }).join("")}</div>`;
+}
+function pairBars(items) {
+  const m = Math.max(...items.flatMap((d) => [d.a, d.b]));
+  return `<div class="legend"><span><i style="background:var(--bench)"></i>Share of money</span><span><i style="background:var(--accent)"></i>Share of risk</span></div>
+  <div class="bars">${items.map((d) => `<div class="bar pair"><span class="lab" title="${h(d.label)}">${h(d.label)}</span>
+    <span class="tracks"><span class="track"><span class="fill bench" style="width:${(d.a / m) * 100}%"></span></span>
+    <span class="track"><span class="fill" style="width:${(d.b / m) * 100}%"></span></span></span>
+    <span class="val">${fmt.pct(d.b, 0)}</span></div>`).join("")}</div>`;
+}
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo || 1; const step0 = span / n; const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((s) => span / s <= n) || 10 * mag;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10)); return out;
+}
+function lineChart(dates, series, { yfmt = (v) => v.toFixed(0) } = {}) {
+  const W = 760, H = 260, L = 44, R = 14, T = 12, B = 26;
+  const all = Object.values(series).flat(); const lo = Math.min(...all), hi = Math.max(...all);
+  const ticks = niceTicks(lo, hi, 5); const y0 = Math.min(lo, ticks[0]), y1 = Math.max(hi, ticks[ticks.length - 1]);
+  const X = (i) => L + (i / (dates.length - 1)) * (W - L - R); const Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  const path = (vals) => vals.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join("");
+  const years = []; let last = "";
+  dates.forEach((d, i) => { const y = d.slice(0, 4); if (y !== last) { if (last) years.push([i, y]); last = y; } });
+  const names = Object.keys(series); const port = series[names[0]];
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Growth of 100 over time">
+    ${ticks.map((t) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/><text class="axis" x="${L - 6}" y="${Y(t) + 4}" text-anchor="end">${yfmt(t)}</text>`).join("")}
+    ${years.map(([i, y]) => `<text class="axis" x="${X(i)}" y="${H - 6}" text-anchor="middle">${y}</text>`).join("")}
+    <path class="area" d="${path(port)}L${X(port.length - 1)} ${H - B}L${L} ${H - B}Z"/>
+    ${names.slice(1).map((n) => `<path class="s-bench" d="${path(series[n])}"/>`).join("")}
+    <path class="s-port" d="${path(port)}"/>
+    <circle class="dot" cx="${X(port.length - 1)}" cy="${Y(port[port.length - 1])}" r="3.5"/>
+  </svg>`;
+}
+function histogram(hist, marks) {
+  const W = 760, H = 220, L = 10, R = 10, T = 26, B = 26; const counts = hist.counts, edges = hist.edges;
+  const lo = edges[0], hi = edges[edges.length - 1], mx = Math.max(...counts);
+  const X = (v) => L + ((v - lo) / (hi - lo)) * (W - L - R); const bw = (W - L - R) / counts.length;
+  const start = marks.find((m) => m.start);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribution of simulated values in one year">
+    ${counts.map((c, i) => { const hgt = (c / mx) * (H - T - B); const mid = (edges[i] + edges[i + 1]) / 2;
+      return `<rect class="hbar ${start && mid < start.value ? "lo" : ""}" x="${X(edges[i]) + 0.5}" y="${H - B - hgt}" width="${Math.max(1, bw - 1)}" height="${hgt}"/>`; }).join("")}
+    <line class="grid" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>
+    ${marks.map((m, k) => `<line class="mark" x1="${X(m.value)}" x2="${X(m.value)}" y1="${T - 6}" y2="${H - B}"/>
+      <text class="marklab" x="${X(m.value)}" y="${k % 2 ? H - 8 : T - 10}" text-anchor="middle">${h(m.label)}</text>`).join("")}
+  </svg>`;
+}
+function table(cols, rows, { cls = "" } = {}) {
+  return `<div class="table-wrap"><table class="${cls}"><thead><tr>${cols.map((c) => `<th class="${c.r ? "r" : ""}">${h(c.t)}</th>`).join("")}</tr></thead>
+  <tbody>${rows.join("")}</tbody></table></div>`;
+}
+const td = (v, r = false, extra = "") => `<td class="${r ? "r" : ""} ${extra}">${v}</td>`;
+const panel = (title, body, aside = "") => `<section class="panel"><div class="panel-head"><h2>${h(title)}</h2>${aside}</div>${body}</section>`;
+const head = (eyebrow, title, q) => `<div class="view-head"><div><div class="eyebrow">${h(eyebrow)}</div><h1>${h(title)}</h1><p class="question">${h(q)}</p></div></div>`;
+const fail = (e) => `<p class="error">${h(e.message || e)}</p>`;
+
+/* ------------------------------------------------------------------ views */
+const VIEWS = [
+  { id: "overview", n: "1", name: "Portfolio hub", q: "What do I own, and what is it worth now?", render: renderOverview },
+  { id: "risk", n: "2", name: "Risk", q: "How much could I lose, and where is the risk coming from?", render: renderRisk },
+  { id: "scenarios", n: "3", name: "Scenario lab", q: "What happens if the market moves?", render: renderScenarios },
+  { id: "performance", n: "4", name: "Performance", q: "Am I doing better than my benchmark, and why?", render: renderPerformance },
+  { id: "compliance", n: "5", name: "Compliance", q: "Am I breaking any rules?", render: renderCompliance },
+  { id: "trading", n: "6", name: "Trading", q: "What should I trade to reach my target?", render: renderTrading },
+  { id: "private", n: "7", name: "Private assets", q: "How do my private investments fit in?", render: renderPrivate },
+  { id: "live", n: "8", name: "Live stream", q: "What is happening right now, tick by tick?", render: renderLive },
+  { id: "ask", n: "AI", name: "Ask", q: "Can you explain this to me?", render: renderAsk },
+];
+const rendered = {};
+function buildNav() {
+  $("#nav").innerHTML = VIEWS.map((v) => `<a href="#${v.id}" data-id="${v.id}"><span class="n">${v.n}</span>${h(v.name)}</a>`).join("");
+  $("#main").innerHTML = VIEWS.map((v) => `<div class="view" id="view-${v.id}" hidden></div>`).join("");
+  $("#mode").innerHTML = DEMO
+    ? `<span class="pill neutral">Demo</span><p>Sample data, captured from the platform. The live stream runs in your browser.</p>`
+    : `<span class="pill good">Connected</span><p>Live server. <a href="/docs">API docs</a></p>`;
+}
+async function show() {
+  const id = (location.hash || "#overview").slice(1);
+  const v = VIEWS.find((x) => x.id === id) || VIEWS[0];
+  VIEWS.forEach((x) => { $("#view-" + x.id).hidden = x.id !== v.id; });
+  document.querySelectorAll("#nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.id === v.id ? "page" : "false"));
+  if (!rendered[v.id]) {
+    rendered[v.id] = true;
+    const el = $("#view-" + v.id);
+    el.innerHTML = head(v.n === "AI" ? "AI explainer" : "Module " + v.n, v.name, v.q) + `<p class="skeleton">Loading…</p>`;
+    try { await v.render(el, v); } catch (e) { el.innerHTML = head("Module " + v.n, v.name, v.q) + fail(e); }
+  }
+}
+
+/* 1 ---------------------------------------------------------------- overview */
+async function renderOverview(el, v) {
+  const [s, hold, com] = await Promise.all([api("/api/summary"), api("/api/holdings"), api("/api/commentary")]);
+  $("#pf-name").textContent = `${s.portfolio} · as of ${s.as_of}`;
+  el.innerHTML = head("Module 1", v.name, v.q) + `
+  <p class="lead">${h(s.description)}</p>
+  <div class="kpis">
+    <div class="kpi"><span class="k">Net asset value</span><span class="v">${fmt.money(s.nav.value)}</span><span class="d">${h(s.nav.meaning)}</span></div>
+    <div class="kpi"><span class="k">Latest day</span><span class="v ${sign(s.day_change)}">${fmt.smoney(s.day_change)}</span><span class="d">${fmt.spct(s.day_change_pct, 2)} on ${h(s.as_of)}</span></div>
+    <div class="kpi"><span class="k">Unrealised gain</span><span class="v ${sign(s.unrealised_pnl)}">${fmt.smoney(s.unrealised_pnl)}</span><span class="d">Value today less what was paid</span></div>
+    <div class="kpi"><span class="k">Cash</span><span class="v">${fmt.money(s.cash)}</span><span class="d">${fmt.pct(s.cash_weight)} of the portfolio</span></div>
+  </div>
+  <div class="grid2">
+    ${panel("Today in brief", `<p class="plain">${h(com.commentary)}</p>
+      ${com.anomalies.length ? `<div class="flags">${com.anomalies.map((a) => `<div class="flag ${h(a.severity)}"><span>${h(a.message)}</span></div>`).join("")}</div>` : ""}`)}
+    ${panel("Where the money is", `<div id="alloc"></div>`, `<div class="seg" id="alloc-seg">${[["asset_class", "Asset class"], ["sector", "Sector"], ["country", "Country"], ["currency", "Currency"]]
+      .map(([k, t], i) => `<button type="button" data-by="${k}" aria-pressed="${i === 0}">${t}</button>`).join("")}</div>`)}
+  </div>
+  ${panel("Holdings", table([{ t: "Holding" }, { t: "Class" }, { t: "Country" }, { t: "Quantity", r: 1 }, { t: "Price", r: 1 }, { t: "Value", r: 1 }, { t: "Weight", r: 1 }, { t: "Unrealised", r: 1 }],
+    hold.map((x) => `<tr>${td(`<b>${h(x.name)}</b><div class="muted small">${h(x.id)} · ${h(x.currency)}</div>`)}${td(h(x.asset_class))}${td(h(x.country))}
+      ${td(x.quantity.toLocaleString("en-US"), 1)}${td(x.price.toLocaleString("en-US", { maximumFractionDigits: 2 }), 1)}${td(fmt.money(x.market_value), 1)}${td(fmt.pct(x.weight), 1)}
+      ${td(`<span class="${sign(x.unrealised_pnl)}">${fmt.smoney(x.unrealised_pnl)}</span>`, 1)}</tr>`)),
+    `<span class="muted small">Prices in local currency; values in ${h(s.base_currency)}. Funds are split into their underlying exposures in the allocation view.</span>`)}`;
+  const draw = async (by) => {
+    const a = await api("/api/allocation?by=" + by);
+    $("#alloc").innerHTML = bars(Object.entries(a).map(([label, value]) => ({ label, value })));
+  };
+  $("#alloc-seg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    $("#alloc-seg").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    draw(b.dataset.by);
+  });
+  draw("asset_class");
+}
+
+/* 2 ---------------------------------------------------------------- risk */
+async function renderRisk(el, v) {
+  const r = await api("/api/risk");
+  const vm = r.var_methods;
+  const f = r.factors;
+  const nav = vm.money.historical / vm.historical;
+  el.innerHTML = head("Module 2", v.name, v.q) + `
+  <p class="lead">${h(r.summary)}</p>
+  <div class="metrics">${r.headline.map(metricCard).join("")}</div>
+  <div class="grid2">
+    ${panel("Where the risk comes from", pairBars(r.contributions.slice(0, 11).map((c) => ({ label: c.name, a: c.weight, b: c.percent }))) +
+      `<p class="note">Each holding's share of total volatility (Euler allocation). The shares add up to 100%. A holding whose risk bar is longer than its money bar punches above its weight.</p>`)}
+    ${panel("Value at Risk, four ways", table([{ t: "Method" }, { t: "1-day loss (95%)", r: 1 }, { t: "In money", r: 1 }], [
+      ["Historical simulation", vm.historical], ["Normal distribution", vm.parametric], ["Monte Carlo (normal)", vm.monte_carlo], ["Monte Carlo (bootstrap)", vm.bootstrap],
+    ].map(([n, x]) => `<tr>${td(n)}${td(fmt.pct(x, 2), 1)}${td(fmt.money(x * nav), 1)}</tr>`)) +
+      `<p class="note">When the four methods agree, the portfolio's bad days look like a normal bell curve. When historical or bootstrap is clearly higher, the tails are fatter than normal and the simple model understates the risk.</p>`)}
+  </div>
+  <div class="grid2">
+    ${f ? panel("Exposure to market drivers", table([{ t: "Factor" }, { t: "Exposure", r: 1 }], Object.entries(f.exposures).map(([k, x]) => `<tr>${td(h(k))}${td(fmt.num(x), 1)}</tr>`)) +
+      `<p class="plain small">These drivers explain ${fmt.pct(f.r_squared.value, 0)} of the portfolio's day-to-day movement. ${h(f.note)}</p>`) : ""}
+    ${panel("Interest-rate risk", `<p class="plain">${h(r.bonds.plain || "No bonds held.")}</p>` +
+      table([{ t: "Bond" }, { t: "Yield", r: 1 }, { t: "Duration", r: 1 }, { t: "DV01", r: 1 }], r.bonds.bonds.map((b) =>
+        `<tr>${td(h(b.name))}${td(fmt.pct(b.yield, 2), 1)}${td(fmt.num(b.modified_duration), 1)}${td(fmt.money(b.dv01), 1)}</tr>`)) +
+      `<p class="note">Duration ${fmt.num(r.bonds.portfolio_duration.value)}: ${h(r.bonds.portfolio_duration.meaning)}</p>`)}
+  </div>
+  ${panel("How quickly could we sell?", `<div class="grid2"><div>${bars(Object.entries(r.liquidity.profile).map(([label, value]) => ({ label: "Within " + label, value })), { max: 1 })}
+    <p class="note">${h(r.liquidity.days_to_liquidate_90.label)}: <b>${fmt.value(r.liquidity.days_to_liquidate_90.value, "days")}</b>. ${h(r.liquidity.days_to_liquidate_90.meaning)}</p></div>
+    <div>${table([{ t: "Slowest to sell" }, { t: "Days", r: 1 }], r.liquidity.positions.slice(0, 5).map((p) => `<tr>${td(h(p.name))}${td(fmt.num(p.days, 1), 1)}</tr>`))}</div></div>`)}`;
+}
+
+/* 3 ---------------------------------------------------------------- scenarios */
+async function renderScenarios(el, v) {
+  const [lib, proj] = await Promise.all([api("/api/scenarios"), api("/api/scenarios/projection")]);
+  const p = proj.percentiles;
+  el.innerHTML = head("Module 3", v.name, v.q) + `
+  <div class="grid2">
+    ${panel("Stress scenarios", `${bars(lib.map((s) => ({ label: s.scenario.name, value: s.pnl_pct })), { signed: true, format: (x) => fmt.spct(x) })}
+      <p class="note">Select a scenario below to see what drives the result. Moves are rounded approximations of past episodes, not forecasts.</p>
+      ${table([{ t: "Scenario" }, { t: "Change", r: 1 }, { t: "In money", r: 1 }], lib.map((s, i) => `<tr class="click" data-i="${i}" tabindex="0">${td(h(s.scenario.name))}${td(`<span class="${sign(s.pnl)}">${fmt.spct(s.pnl_pct)}</span>`, 1)}${td(fmt.smoney(s.pnl), 1)}</tr>`), { cls: "lib" })}`)}
+    ${panel("Scenario detail", `<div id="sc-detail"></div>`)}
+  </div>
+  ${panel("Build your own scenario", `<div class="sliders" id="sliders">
+      ${slider("equity", "Equities", -50, 30, 1, -20, "%")}${slider("rates", "Interest rates", -300, 300, 25, 100, "bp")}
+      ${slider("credit_spread", "Corporate credit spreads", 0, 500, 25, 0, "bp")}${slider("real_estate", "Property", -50, 30, 1, 0, "%")}
+      ${slider("commodity", "Gold and commodities", -40, 40, 1, 0, "%")}${slider("dollar", "US dollar vs other currencies", -20, 20, 1, 0, "%")}
+    </div><div id="custom-out"></div>`)}
+  ${panel("A year from now: 10,000 possible futures", `<p class="plain">${h(proj.plain)}</p>${histogram(proj.histogram, [
+      { value: p.p5, label: "5%: " + fmt.money(p.p5) }, { value: proj.start_value, label: "Today " + fmt.money(proj.start_value), start: true },
+      { value: p.p95, label: "95%: " + fmt.money(p.p95) }])}
+    <p class="note">Built by resampling five-day blocks of the holdings' own history, which keeps calm and stormy spells and the links between assets intact. Red bars are outcomes below today's value.</p>`)}`;
+  const detail = (i) => {
+    const s = lib[i];
+    el.querySelectorAll("table.lib tr.click").forEach((tr) => tr.classList.toggle("sel", +tr.dataset.i === i));
+    $("#sc-detail").innerHTML = `<p class="plain"><b>${h(s.scenario.name)}.</b> ${h(s.scenario.description)}</p><p class="plain">${h(s.plain)}</p>` +
+      table([{ t: "Holding" }, { t: "Move", r: 1 }, { t: "Profit / loss", r: 1 }], s.positions.map((x) => `<tr>${td(h(x.name))}${td(fmt.spct(x.total_move), 1)}${td(`<span class="${sign(x.pnl)}">${fmt.smoney(x.pnl)}</span>`, 1)}</tr>`));
+  };
+  el.querySelector("table.lib").addEventListener("click", (e) => { const tr = e.target.closest("tr.click"); if (tr) detail(+tr.dataset.i); });
+  el.querySelector("table.lib").addEventListener("keydown", (e) => { const tr = e.target.closest("tr.click"); if (tr && e.key === "Enter") detail(+tr.dataset.i); });
+  detail(0);
+  let timer;
+  const run = async () => {
+    const val = (k) => +$("#sl-" + k).value;
+    const d = val("dollar") / 100; const fxm = 1 / (1 + d) - 1;
+    const body = { name: "Your scenario", equity: val("equity") / 100, rates: val("rates") / 10000, credit_spread: val("credit_spread") / 10000,
+      real_estate: val("real_estate") / 100, commodity: val("commodity") / 100, fx: d ? { EUR: fxm, JPY: fxm, GBP: fxm } : {} };
+    try {
+      const r = await api("/api/scenarios/custom", { method: "POST", body });
+      $("#custom-out").innerHTML = `<div class="kpis" style="margin-top:4px"><div class="kpi"><span class="k">Change in value</span><span class="v ${sign(r.pnl)}">${fmt.spct(r.pnl_pct)}</span><span class="d">${fmt.smoney(r.pnl)}</span></div>
+        <div class="kpi"><span class="k">Value afterwards</span><span class="v">${fmt.money(r.nav_after)}</span><span class="d">from ${fmt.money(r.nav_after - r.pnl)} today</span></div></div><p class="plain">${h(r.plain)}</p>`;
+    } catch (e) { $("#custom-out").innerHTML = fail(e); }
+  };
+  $("#sliders").addEventListener("input", (e) => {
+    const i = e.target; if (i.type !== "range") return;
+    i.previousElementSibling.querySelector("output").textContent = sliderText(+i.value, i.dataset.unit);
+    clearTimeout(timer); timer = setTimeout(run, 120);
+  });
+  run();
+}
+function sliderText(v, unit) { return unit === "bp" ? (v > 0 ? "+" : "") + v + " bp" : (v > 0 ? "+" : "") + v + "%"; }
+function slider(id, label, min, max, step, val, unit) {
+  return `<div class="slider"><label for="sl-${id}">${h(label)} <output>${sliderText(val, unit)}</output></label>
+    <input type="range" id="sl-${id}" min="${min}" max="${max}" step="${step}" value="${val}" data-unit="${unit}"></div>`;
+}
+
+/* 4 ---------------------------------------------------------------- performance */
+async function renderPerformance(el, v) {
+  const [p, att] = await Promise.all([api("/api/performance"), api("/api/performance/attribution").catch((e) => ({ error: e.message }))]);
+  const g = p.growth; const bpr = p.benchmark_period_returns || {};
+  el.innerHTML = head("Module 4", v.name, v.q) + `
+  <p class="lead">${h(p.plain || "")}</p>
+  ${panel("Growth of 100", `<div class="legend"><span><i style="background:var(--accent)"></i>Portfolio</span>${g.Benchmark ? `<span><i style="background:var(--bench)"></i>Benchmark</span>` : ""}</div>
+    ${lineChart(g.dates, g.Benchmark ? { Portfolio: g.Portfolio, Benchmark: g.Benchmark } : { Portfolio: g.Portfolio })}
+    <p class="note">A back-cast: today's holdings valued through history. Connect a real track record and cash flows to measure actual results.</p>`)}
+  <div class="grid2">
+    ${panel("Returns by period", table([{ t: "Period" }, { t: "Portfolio", r: 1 }, { t: "Benchmark", r: 1 }, { t: "Difference", r: 1 }],
+      Object.entries(p.period_returns).map(([k, x]) => { const b = bpr[k]; const d = x != null && b != null ? x - b : null;
+        return `<tr>${td(h(k))}${td(fmt.spct(x), 1)}${td(fmt.spct(b), 1)}${td(`<span class="${d == null ? "" : sign(d)}">${fmt.spct(d)}</span>`, 1)}</tr>`; })))}
+    ${att.error ? panel("What explains the difference", `<p class="plain muted">Attribution needs the benchmark broken down by asset class, which this portfolio's data does not include. Supply benchmark segments to enable it.</p>`) :
+      panel("What explains the difference (last 12 months)", `<p class="plain">${h(att.plain)}</p>` +
+      table([{ t: "Asset class" }, { t: "Allocation", r: 1 }, { t: "Selection", r: 1 }, { t: "Interaction", r: 1 }, { t: "Total", r: 1 }],
+        att.table.map((x) => `<tr>${td(h(x.segment))}${td(fmt.spct(x.allocation, 2), 1)}${td(fmt.spct(x.selection, 2), 1)}${td(fmt.spct(x.interaction, 2), 1)}${td(`<b>${fmt.spct(x.total, 2)}</b>`, 1)}</tr>`)) +
+      `<p class="note">Brinson-Fachler: allocation rewards being in the right asset classes, selection rewards picking better holdings within them.</p>`)}
+  </div>
+  <div class="metrics">${p.metrics.map(metricCard).join("")}</div>
+  <div class="grid2">
+    ${panel("Recent contributors", `<p class="plain">${h(p.contributors.plain)}</p>` + bars(Object.entries(p.contributors.pnl).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value), { signed: true, format: (x) => fmt.smoney(x) }))}
+    ${p.factor_attribution && p.factor_attribution.contributions ? panel("Return from market drivers (last year)", `<p class="plain">${h(p.factor_attribution.plain)}</p>` +
+      bars([...Object.entries(p.factor_attribution.contributions).map(([label, value]) => ({ label, value })), { label: "Holding-specific", value: p.factor_attribution.unexplained }], { signed: true, format: (x) => fmt.spct(x) })) : ""}
+  </div>`;
+}
+
+/* 5 ---------------------------------------------------------------- compliance */
+async function renderCompliance(el, v) {
+  const c = await api("/api/compliance");
+  const rank = { breach: 2, warning: 1, pass: 0 };
+  const byRule = {};
+  c.results.forEach((r) => { if (!byRule[r.rule_id] || rank[r.status] > rank[byRule[r.rule_id].status]) byRule[r.rule_id] = r; });
+  el.innerHTML = head("Module 5", v.name, v.q) + `
+  <p class="lead">${h(c.plain)}</p>
+  <div class="row"><span class="pill breach">${c.counts.breach} breach${c.counts.breach === 1 ? "" : "es"}</span><span class="pill warning">${c.counts.warning} near a limit</span><span class="pill pass">${c.counts.pass} passing</span></div>
+  ${panel("Rule book", table([{ t: "Rule" }, { t: "Status" }, { t: "Measured", r: 1 }, { t: "Limit", r: 1 }, { t: "Detail" }],
+    c.rules.map((rule) => { const r = byRule[rule.id]; const isPct = !["max_duration", "min_holdings"].includes(rule.type);
+      const f = (x) => isPct ? fmt.pct(x) : fmt.num(x, rule.type === "min_holdings" ? 0 : 2);
+      return `<tr>${td(`<b>${h(rule.id)}</b> ${h(rule.description)}`)}${td(`<span class="pill ${r.status}">${r.status === "pass" ? "Pass" : r.status === "warning" ? "Near limit" : "Breach"}</span>`)}
+        ${td(rule.type === "exclusion" ? "—" : f(r.measured), 1)}${td(rule.type === "exclusion" ? "none" : f(r.limit), 1)}${td(`<span class="small">${h(r.message)}</span>`)}</tr>`; })) +
+    `<p class="note">Rules are plain data that a compliance officer can read and edit. The same rules run before every trade (pre-trade) and on today's holdings (post-trade). "Near limit" means within 10% of the limit.</p>`)}`;
+}
+
+/* 6 ---------------------------------------------------------------- trading */
+const METHODS = [["min_variance", "Lowest risk"], ["risk_parity", "Equal risk"], ["max_sharpe", "Best return per risk"], ["mean_variance", "Return-seeking"]];
+async function renderTrading(el, v) {
+  const hold = await api("/api/holdings");
+  el.innerHTML = head("Module 6", v.name, v.q) + `
+  ${panel("Suggest a target mix", `<div class="row"><div class="seg" id="opt-seg">${METHODS.map(([k, t], i) => `<button type="button" data-m="${k}" aria-pressed="${i === 0}">${t}</button>`).join("")}</div></div>
+    <div id="opt-out"></div>`)}
+  ${panel("Trades to get there", `<div id="reb-out"></div>`)}
+  ${panel("Order ticket", `<form id="ticket" class="row">
+      <label for="t-inst" class="small">Instrument</label><select id="t-inst">${hold.map((x) => `<option value="${h(x.id)}">${h(x.name)}</option>`).join("")}<option value="EMB">Ember Tobacco (not held)</option></select>
+      <label for="t-side" class="small">Side</label><select id="t-side"><option>BUY</option><option>SELL</option></select>
+      <label for="t-qty" class="small">Quantity</label><input type="number" id="t-qty" min="1" value="500" style="width:110px">
+      <button class="btn primary" type="submit">Check and place</button></form>
+    <div id="ticket-out"></div><div id="blotter"></div>`)}`;
+  const load = async (m) => {
+    $("#opt-out").innerHTML = `<p class="skeleton">Optimising…</p>`;
+    try {
+      const o = await api("/api/trading/optimise", { method: "POST", body: { method: m } });
+      const cur = Object.fromEntries(hold.map((x) => [x.id, x.weight]));
+      $("#opt-out").innerHTML = `<p class="plain">${h(o.plain)}</p>
+        <div class="kpis"><div class="kpi"><span class="k">Expected volatility</span><span class="v">${fmt.pct(o.proposed.volatility)}</span><span class="d">now ${fmt.pct(o.current.volatility)}</span></div>
+        <div class="kpi"><span class="k">Expected return</span><span class="v">${fmt.pct(o.proposed.expected_return)}</span><span class="d">now ${fmt.pct(o.current.expected_return)}</span></div>
+        <div class="kpi"><span class="k">Return per unit of risk</span><span class="v">${fmt.num(o.proposed.sharpe)}</span><span class="d">now ${fmt.num(o.current.sharpe)}</span></div></div>` +
+        table([{ t: "Holding" }, { t: "Now", r: 1 }, { t: "Target", r: 1 }, { t: "Change", r: 1 }], hold.map((x) => { const t = o.weights[x.id] ?? 0; const d = t - cur[x.id];
+          return `<tr>${td(h(x.name))}${td(fmt.pct(cur[x.id]), 1)}${td(fmt.pct(t), 1)}${td(`<span class="${sign(d)}">${fmt.spct(d)}</span>`, 1)}</tr>`; }));
+      const r = await api("/api/trading/rebalance", { method: "POST", body: o.weights, key: m });
+      $("#reb-out").innerHTML = `<div class="row"><span class="pill ${r.compliance.approved ? "pass" : "breach"}">${r.compliance.approved ? "Pre-trade check passed" : "Blocked by pre-trade check"}</span></div>
+        <p class="plain">${h(r.plain)}</p><p class="plain ${r.compliance.approved ? "" : "neg"}">${h(r.compliance.plain)}</p>` +
+        table([{ t: "Holding" }, { t: "Side" }, { t: "Quantity", r: 1 }, { t: "Value", r: 1 }, { t: "Est. cost", r: 1 }], r.trades.map((t) =>
+          `<tr>${td(h(t.name))}${td(`<span class="pill ${t.side === "BUY" ? "good" : "neutral"}">${t.side}</span>`)}${td(t.quantity.toLocaleString("en-US"), 1)}${td(fmt.money(Math.abs(t.value)), 1)}${td(fmt.money(t.est_cost), 1)}</tr>`)) +
+        `<p class="note">Costs combine commission, half the bid-ask spread and market impact (square-root model: bigger trades relative to daily volume cost more per dollar).</p>`;
+    } catch (e) { $("#opt-out").innerHTML = fail(e); }
+  };
+  $("#opt-seg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return;
+    $("#opt-seg").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); load(b.dataset.m); });
+  load("min_variance");
+  const drawBlotter = async () => {
+    const orders = await api("/api/trading/orders");
+    $("#blotter").innerHTML = orders.length ? table([{ t: "#" }, { t: "Instrument" }, { t: "Side" }, { t: "Quantity", r: 1 }, { t: "Status" }],
+      orders.slice().reverse().map((o) => `<tr>${td(o.id)}${td(h(o.instrument_id))}${td(o.side)}${td(o.quantity.toLocaleString("en-US"), 1)}${td(`<span class="pill ${o.status === "REJECTED" ? "breach" : "neutral"}">${o.status}</span>`)}</tr>`)) : `<p class="muted small">No orders yet.</p>`;
+  };
+  $("#ticket").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const r = await api("/api/trading/orders", { method: "POST", body: { instrument_id: $("#t-inst").value, side: $("#t-side").value, quantity: +$("#t-qty").value } });
+      $("#ticket-out").innerHTML = `<p class="plain ${r.compliance.approved ? "pos" : "neg"}">${r.compliance.approved ? "Order placed." : "Order rejected."} ${h(r.compliance.plain)}</p>`;
+      drawBlotter();
+    } catch (err) { $("#ticket-out").innerHTML = fail(err); }
+  });
+  drawBlotter();
+}
+
+/* 7 ---------------------------------------------------------------- private */
+async function renderPrivate(el, v) {
+  const p = await api("/api/private");
+  const c = p.combined;
+  el.innerHTML = head("Module 7", v.name, v.q) + `
+  <p class="lead">${h(c.plain)}</p>
+  <div class="grid2">
+    ${panel("Whole portfolio, public and private", bars(Object.entries(c.allocation).map(([label, value]) => ({ label, value }))))}
+    ${panel("Commitments versus cash", `<div class="kpis"><div class="kpi"><span class="k">Unfunded commitments</span><span class="v">${fmt.money(c.unfunded_commitments)}</span><span class="d">Can be called at short notice</span></div>
+      <div class="kpi"><span class="k">Cash on hand</span><span class="v">${fmt.money(c.cash)}</span><span class="d">${c.cash < c.unfunded_commitments ? "Less than the calls that could come" : "Covers the calls that could come"}</span></div></div>`)}
+  </div>
+  ${p.funds.map((f) => panel(f.name, `<div class="fund">
+    <div class="muted small">${h(f.strategy)} · vintage ${f.vintage} · statement roll-forward to ${h(f.as_of)}</div>
+    <div><div class="row small" style="justify-content:space-between"><span>Paid in ${fmt.money(f.paid_in)} of ${fmt.money(f.commitment)}</span><span>${fmt.pct(f.paid_in / f.commitment, 0)} called</span></div>
+      <div class="progress"><div style="width:${(f.paid_in / f.commitment) * 100}%"></div></div></div>
+    <div class="fund-stats">
+      <div><b>${fmt.money(f.nav)}</b><span>Value today</span></div><div><b>${fmt.money(f.distributed)}</b><span>Cash returned</span></div>
+      <div><b>${fmt.num(f.tvpi.value)}x</b><span title="${h(f.tvpi.meaning)}">TVPI</span></div><div><b>${fmt.num(f.dpi.value)}x</b><span title="${h(f.dpi.meaning)}">DPI</span></div>
+      <div><b>${fmt.pct(f.irr.value)}</b><span title="${h(f.irr.meaning)}">IRR</span></div><div><b>${fmt.num(f.pme)}</b><span>PME vs benchmark</span></div>
+    </div>
+    <p class="plain">${h(f.plain)} A public market equivalent of ${fmt.num(f.pme)} means the fund ${f.pme >= 1 ? "beat" : "lagged"} the same cash invested in the benchmark.</p>
+    ${table([{ t: "Year" }, { t: "Expected calls", r: 1 }, { t: "Expected distributions", r: 1 }, { t: "Net cash", r: 1 }, { t: "Value", r: 1 }],
+      f.forecast.map((y) => `<tr>${td(y.year)}${td(fmt.money(y.calls), 1)}${td(fmt.money(y.distributions), 1)}${td(`<span class="${sign(y.net_cash_flow)}">${fmt.smoney(y.net_cash_flow)}</span>`, 1)}${td(fmt.money(y.nav), 1)}</tr>`))}
+    <p class="note">Forecast with the Takahashi-Alexander (Yale) model: calls are a share of what is left to call, distributions a share of value that grows as the fund matures, and value grows 10% a year.</p>
+  </div>`)).join("")}`;
+}
+
+/* 8 ---------------------------------------------------------------- live */
+let LIVE = null;
+async function renderLive(el, v) {
+  el.innerHTML = head("Module 8 · real-time showcase", v.name, v.q) + `
+  <p class="lead">${DEMO ? "Correlated price ticks are generated in your browser from the holdings' real history and processed one by one, exactly as the platform's stream processor does on a server." : "Ticks stream from the server's real-time engine over a WebSocket. Each tick updates the portfolio in constant time; a snapshot arrives four times a second."}</p>
+  <div class="row">
+    <button class="btn primary" id="lv-toggle" type="button">Pause</button>
+    <span class="small muted" data-shockui>Inject an event:</span>
+    <button class="btn danger" type="button" data-shockui data-shock='{"move":-0.03,"asset_class":"Equity"}'>Equities −3%</button>
+    <button class="btn danger" type="button" data-shockui data-shock='{"move":-0.05}'>Everything −5%</button>
+    <button class="btn" type="button" data-shockui data-shock='{"move":0.08,"instrument":"NWT"}'>Northwind +8%</button>
+    <button class="btn" type="button" data-shockui data-shock='{"move":-0.015,"asset_class":"Fixed Income"}'>Bonds −1.5%</button>
+    ${DEMO ? `<label class="small muted" for="lv-speed">Ticks per second</label><select id="lv-speed"><option value="500">500</option><option value="5000" selected>5,000</option><option value="50000">50,000</option></select>` : ""}
+  </div>
+  <p class="small muted" id="lv-src"></p>
+  <div class="kpis">
+    <div class="kpi"><span class="k"><span class="live-dot" id="lv-dot"></span>Net asset value</span><span class="v" id="lv-nav">—</span><span class="d" id="lv-open">—</span></div>
+    <div class="kpi"><span class="k">Today's profit / loss</span><span class="v" id="lv-pnl">—</span><span class="d" id="lv-ret">—</span></div>
+    <div class="kpi"><span class="k">Live 1-day VaR (95%)</span><span class="v" id="lv-var">—</span><span class="d" id="lv-es">—</span></div>
+    <div class="kpi"><span class="k">VaR budget used today</span><span class="v" id="lv-used">—</span><div class="gauge" id="lv-gauge"><div style="width:0"></div></div></div>
+  </div>
+  <div class="grid2">
+    ${panel("Portfolio value, live", `<canvas class="spark" id="lv-spark" aria-label="Live portfolio value"></canvas><div class="row small muted" id="lv-dd"></div>`)}
+    ${panel("Engine", `<div class="kpis k3">
+      <div class="kpi"><span class="k">Ticks processed</span><span class="v" id="lv-ticks">0</span></div>
+      <div class="kpi"><span class="k">Throughput</span><span class="v" id="lv-tps">—</span><span class="d">ticks per second</span></div>
+      <div class="kpi"><span class="k">Latency p50 / p99</span><span class="v" id="lv-lat">—</span><span class="d">microseconds per tick</span></div></div>
+      <p class="note" id="lv-bench"></p>`)}
+  </div>
+  <div class="grid2">
+    ${panel("Positions", `<div id="lv-pos"></div>`)}
+    ${panel("Alerts", `<div class="flags" id="lv-alerts"><p class="muted small">No alerts yet. Inject an event above to see the processor react.</p></div>`)}
+  </div>`;
+  try {
+    const b = await api("/api/live/benchmark?ticks=200000");
+    $("#lv-bench").textContent = "Speed test: " + b.plain;
+  } catch (e) { $("#lv-bench").textContent = ""; }
+  LIVE = DEMO ? new BrowserEngine(DEMO.meta) : new ServerEngine();
+  LIVE.onSnapshot = drawLive;
+  LIVE.start();
+  $("#lv-toggle").addEventListener("click", () => { if (LIVE.running) { LIVE.stop(); $("#lv-toggle").textContent = "Resume"; } else { LIVE.start(); $("#lv-toggle").textContent = "Pause"; } });
+  el.querySelectorAll("[data-shock]").forEach((b) => b.addEventListener("click", () => LIVE.shock(JSON.parse(b.dataset.shock))));
+  if (DEMO) $("#lv-speed").addEventListener("change", (e) => LIVE.setSpeed(+e.target.value));
+}
+const PROVIDER_NAMES = { simulated: "Simulated ticks", coinbase: "Coinbase (live crypto)", finnhub: "Finnhub (live trades)",
+  alpaca: "Alpaca (live trades)", "alpaca-test": "Alpaca test stream (FAKEPACA moves applied to one holding)", yahoo: "Yahoo Finance (delayed, polled)" };
+function drawLive(s) {
+  $("#lv-dot").classList.toggle("on", LIVE.running);
+  const src = s.source || { provider: DEMO ? "simulated" : "simulated", status: "running" };
+  const live = src.provider !== "simulated";
+  $("#lv-src").innerHTML = `Source: <b>${h(PROVIDER_NAMES[src.provider] || src.provider)}</b> · ${h(src.status || "")}` +
+    (src.reconnects ? ` · ${src.reconnects} reconnect${src.reconnects === 1 ? "" : "s"}` : "") +
+    (live && s.stats.feed_delay_ms ? ` · feed delay ${Math.round(s.stats.feed_delay_ms)} ms` : "") +
+    (src.last_error ? ` · <span class="neg">${h(src.last_error)}</span>` : "") +
+    (live ? " · opening values are the last daily close" : "");
+  document.querySelectorAll("[data-shockui]").forEach((b) => { b.hidden = live; });
+  $("#lv-nav").textContent = fmt.money(s.nav);
+  $("#lv-open").textContent = "Opened at " + fmt.money(s.nav_open);
+  $("#lv-pnl").textContent = fmt.smoney(s.day_pnl); $("#lv-pnl").className = "v " + sign(s.day_pnl);
+  $("#lv-ret").textContent = fmt.spct(s.day_return, 2) + " since the open";
+  $("#lv-var").textContent = fmt.money(s.var95);
+  $("#lv-es").textContent = "Expected shortfall " + fmt.money(s.es95);
+  $("#lv-used").textContent = fmt.pct(s.var_used, 0);
+  const g = $("#lv-gauge"); g.firstElementChild.style.width = Math.min(100, s.var_used * 100) + "%";
+  g.classList.toggle("hot", s.var_used >= 0.7 && s.var_used < 1); g.classList.toggle("over", s.var_used >= 1);
+  $("#lv-ticks").textContent = s.stats.ticks.toLocaleString("en-US");
+  $("#lv-tps").textContent = Math.round(s.stats.ticks_per_second).toLocaleString("en-US");
+  $("#lv-lat").textContent = s.stats.p50_us.toFixed(1) + " / " + s.stats.p99_us.toFixed(1);
+  $("#lv-dd").textContent = "Largest fall from today's high: " + fmt.pct(s.intraday_drawdown, 2);
+  $("#lv-pos").innerHTML = table([{ t: "Holding" }, { t: "Move", r: 1 }, { t: "P/L", r: 1 }, { t: "Weight", r: 1 }],
+    s.positions.map((p) => `<tr>${td(h(p.name))}${td(`<span class="${sign(p.move)}">${fmt.spct(p.move, 2)}</span>`, 1)}${td(`<span class="${sign(p.pnl)}">${fmt.smoney(p.pnl)}</span>`, 1)}${td(fmt.pct(p.weight), 1)}</tr>`));
+  if (s.alerts.length) $("#lv-alerts").innerHTML = s.alerts.slice(0, 10).map((a) => `<div class="flag ${h(a.severity)}"><span><span class="mono small muted">${new Date(a.ts * 1000).toLocaleTimeString()}</span> ${h(a.message)}</span></div>`).join("");
+  spark($("#lv-spark"), s.trail, s.nav_open);
+}
+function spark(cv, vals, ref) {
+  const dpr = window.devicePixelRatio || 1; const w = cv.clientWidth, hgt = cv.clientHeight;
+  if (!w) return; cv.width = w * dpr; cv.height = hgt * dpr; const c = cv.getContext("2d"); c.scale(dpr, dpr); c.clearRect(0, 0, w, hgt);
+  if (vals.length < 2) return;
+  const css = getComputedStyle(document.documentElement);
+  const lo = Math.min(ref, ...vals), hi = Math.max(ref, ...vals), pad = (hi - lo) * 0.1 || 1;
+  const X = (i) => 4 + (i / (vals.length - 1)) * (w - 70), Y = (v) => 6 + (1 - (v - lo + pad) / (hi - lo + 2 * pad)) * (hgt - 12);
+  c.strokeStyle = css.getPropertyValue("--line"); c.setLineDash([4, 4]); c.beginPath(); c.moveTo(4, Y(ref)); c.lineTo(w - 66, Y(ref)); c.stroke(); c.setLineDash([]);
+  c.fillStyle = css.getPropertyValue("--muted"); c.font = "11px " + css.getPropertyValue("--f-mono"); c.fillText("open", w - 60, Y(ref) + 4);
+  const up = vals[vals.length - 1] >= ref; const col = css.getPropertyValue(up ? "--good" : "--crit");
+  c.beginPath(); vals.forEach((v, i) => (i ? c.lineTo(X(i), Y(v)) : c.moveTo(X(i), Y(v)))); c.strokeStyle = col; c.lineWidth = 1.8; c.stroke();
+  c.lineTo(X(vals.length - 1), hgt); c.lineTo(X(0), hgt); c.closePath(); c.globalAlpha = 0.08; c.fillStyle = col; c.fill(); c.globalAlpha = 1;
+  c.beginPath(); c.arc(X(vals.length - 1), Y(vals[vals.length - 1]), 3.5, 0, 7); c.fillStyle = col; c.fill();
+}
+
+class ServerEngine {
+  constructor() { this.running = false; this.sock = null; }
+  start() {
+    const url = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/live";
+    this.sock = new WebSocket(url); this.running = true;
+    this.sock.onmessage = (e) => this.onSnapshot && this.onSnapshot(JSON.parse(e.data));
+    this.sock.onclose = () => { this.running = false; };
+  }
+  stop() { this.running = false; if (this.sock) this.sock.close(); }
+  shock(s) { if (this.sock && this.sock.readyState === 1) this.sock.send(JSON.stringify({ action: "shock", ...s })); }
+}
+
+/* A faithful browser copy of openportfolio/realtime: SimulatedFeed + StreamProcessor. */
+class BrowserEngine {
+  constructor(meta) {
+    this.meta = meta; const n = meta.instruments.length; this.n = n;
+    this.ids = meta.instruments.map((i) => i.id); this.names = meta.instruments.map((i) => i.name);
+    this.chol = cholesky(meta.cov.map((r, i) => r.map((x, j) => x + (i === j ? 1e-12 : 0))));
+    this.openVal = meta.instruments.map((i) => i.market_value); this.val = this.openVal.slice(); this.idx = new Float64Array(n).fill(1);
+    this.cash = meta.cash; this.nav = this.val.reduce((a, b) => a + b, 0) + this.cash; this.navOpen = this.nav; this.peak = this.nav; this.maxdd = 0;
+    this.tvar = new Float64Array(n); this.tcount = new Int32Array(n); this.limitOn = new Uint8Array(n); this.lossOn = false;
+    this.alerts = []; this.ticks = 0; this.trail = []; this.pending = {}; this.lat = []; this.tps = 5000; this.running = false;
+    this.var95open = this.var95(); this.rateMark = [performance.now(), 0];
+  }
+  setSpeed(t) { this.tps = t; }
+  var95() { const w = this.val.map((v) => v / this.nav); let s = 0; for (let i = 0; i < this.n; i++) for (let j = 0; j < this.n; j++) s += w[i] * this.meta.cov[i][j] * w[j]; return 1.6448536 * Math.sqrt(s) * this.nav; }
+  shock({ move, instrument, asset_class }) {
+    this.meta.instruments.forEach((inst, k) => { if (instrument && inst.id !== instrument) return; if (asset_class && inst.asset_class !== asset_class) return;
+      this.pending[k] = (1 + (this.pending[k] || 0)) * (1 + move) - 1; });
+  }
+  step(frac) {
+    const z = Array.from({ length: this.n }, gauss); const moves = new Float64Array(this.n);
+    for (let i = 0; i < this.n; i++) { let s = 0; for (let j = 0; j <= i; j++) s += this.chol[i][j] * z[j]; moves[i] = s * Math.sqrt(frac); }
+    for (const k in this.pending) moves[k] = (1 + moves[k]) * (1 + this.pending[k]) - 1; this.pending = {};
+    return moves;
+  }
+  process(k, r, ts) { /* the hot path, mirroring StreamProcessor.process */
+    const nv = this.val[k] * (1 + r); this.nav += nv - this.val[k]; this.val[k] = nv;
+    const n = this.tcount[k], pv = this.tvar[k]; this.tvar[k] = n === 0 ? r * r : 0.97 * pv + 0.03 * r * r; this.tcount[k] = n + 1;
+    if (n >= 50 && pv > 0 && Math.abs(r) > 6 * Math.sqrt(pv)) this.alert(ts, "jump", "warning", `${this.names[k]} jumped ${fmt.spct(r, 2)} in one tick, about ${Math.round(Math.abs(r) / Math.sqrt(pv))} times its usual tick move.`);
+    if (this.nav > this.peak) this.peak = this.nav; else this.maxdd = Math.max(this.maxdd, 1 - this.nav / this.peak);
+    const w = nv / this.nav, over = w > 0.21;
+    if (over && !this.limitOn[k]) this.alert(ts, "limit", "critical", `${this.names[k]} is now ${fmt.pct(w)} of the portfolio, above the 21% limit.`);
+    this.limitOn[k] = over ? 1 : 0;
+    const loss = this.navOpen - this.nav, breach = loss > this.var95open;
+    if (breach && !this.lossOn) this.alert(ts, "loss", "critical", `Today's loss of ${fmt.money(loss)} is larger than the 1-day 95% VaR of ${fmt.money(this.var95open)}. A 1-in-20 day is under way.`);
+    this.lossOn = breach; this.ticks++;
+  }
+  alert(ts, kind, severity, message) { this.alerts.unshift({ ts, kind, severity, message }); this.alerts.length = Math.min(this.alerts.length, 50); }
+  pump(dtSec) {
+    const steps = Math.max(1, Math.round((this.tps * dtSec) / this.n)); const frac = 1 / ((this.tps / this.n) * 390); const ts = Date.now() / 1000;
+    const t0 = performance.now(); let processed = 0;
+    for (let s = 0; s < steps; s++) { const m = this.step(frac); for (let k = 0; k < this.n; k++) { this.process(k, m[k], ts); processed++; } }
+    const per = ((performance.now() - t0) * 1000) / Math.max(1, processed); this.lat.push(per); if (this.lat.length > 400) this.lat.shift();
+  }
+  snapshot() {
+    const now = performance.now(); const [t0, n0] = this.rateMark; this.rateMark = [now, this.ticks];
+    this.trail.push(this.nav); if (this.trail.length > 600) this.trail.shift();
+    const sorted = this.lat.slice().sort((a, b) => a - b); const q = (p) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] : 0;
+    const v = this.var95(); const pnl = this.val.map((x, k) => x - this.openVal[k]);
+    const order = [...pnl.keys()].sort((a, b) => Math.abs(pnl[b]) - Math.abs(pnl[a]));
+    return { nav: this.nav, nav_open: this.navOpen, day_pnl: this.nav - this.navOpen, day_return: this.nav / this.navOpen - 1, intraday_drawdown: this.maxdd,
+      var95: v, es95: (v / 1.6448536) * 2.0627128, var_used: Math.max(0, this.navOpen - this.nav) / this.var95open,
+      positions: order.map((k) => ({ id: this.ids[k], name: this.names[k], move: this.val[k] / this.openVal[k] - 1, pnl: pnl[k], weight: this.val[k] / this.nav })),
+      alerts: this.alerts.slice(0, 20), trail: this.trail,
+      stats: { ticks: this.ticks, ticks_per_second: ((this.ticks - n0) / (now - t0)) * 1000, p50_us: q(0.5), p99_us: q(0.99) } };
+  }
+  start() {
+    if (this.running) return; this.running = true; let last = performance.now(), lastSnap = 0;
+    const loop = (t) => { if (!this.running) return; const dt = Math.min(0.25, (t - last) / 1000); last = t; this.pump(dt);
+      if (t - lastSnap > 250) { lastSnap = t; this.onSnapshot && this.onSnapshot(this.snapshot()); } requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+  stop() { this.running = false; this.onSnapshot && this.onSnapshot(this.snapshot()); }
+}
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function cholesky(A) { const n = A.length; const L = A.map(() => new Array(n).fill(0));
+  for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) { let s = A[i][j]; for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k]; L[i][j] = i === j ? Math.sqrt(Math.max(s, 1e-18)) : s / L[j][j]; }
+  return L; }
+
+/* 9 ---------------------------------------------------------------- ask */
+const SUGGESTED = ["How much could I lose?", "Where is my risk coming from?", "What if equities fall 20%?", "What if rates rise 1%?", "How am I doing against the benchmark?",
+  "Why did the portfolio move today?", "How liquid is the portfolio?", "Am I breaking any rules?", "What happens in a 2008 crisis?", "What does Sharpe ratio mean?"];
+async function renderAsk(el, v) {
+  el.innerHTML = head("AI explainer", v.name, v.q) + `
+  ${panel("Ask a question in plain words", `<form class="ask" id="ask-form"><label for="ask-q" class="small muted" hidden>Question</label><input id="ask-q" placeholder="For example: what if equities fall 15% and rates rise half a point?" autocomplete="off"><button class="btn primary" type="submit">Ask</button></form>
+    <div class="chips">${SUGGESTED.map((q) => `<button type="button" class="chip">${h(q)}</button>`).join("")}</div>
+    <p class="note">Every answer is worked out from the portfolio's own numbers and lists the figures it used, so it can be checked. ${DEMO ? "In this demo, answers come from the built-in engine." : "With an API key configured, unusual questions go to a language model that may only use the portfolio's facts."}</p>`)}
+  <div id="answers" class="view" style="gap:16px"></div>`;
+  const ask = async (q) => {
+    if (!q.trim()) return;
+    const box = document.createElement("div"); box.className = "answer"; box.innerHTML = `<div class="q">${h(q)}</div><div class="muted">Working it out…</div>`;
+    $("#answers").prepend(box);
+    try {
+      const a = await api("/api/explain?q=" + encodeURIComponent(q));
+      box.innerHTML = `<div class="q">${h(q)}</div><div>${h(a.answer)}</div>` + (a.sources && a.sources.length ? `<div class="src">Figures used: ${a.sources.map((s) => `${h(s.label)} ${typeof s.value === "number" ? h(Math.abs(s.value) > 100 ? fmt.money(s.value) : Math.abs(s.value) < 1 ? fmt.pct(s.value, 2) : fmt.num(s.value)) : h(s.value)}`).join(" · ")}</div>` : "");
+    } catch (e) { box.innerHTML = `<div class="q">${h(q)}</div>` + fail(e); }
+  };
+  $("#ask-form").addEventListener("submit", (e) => { e.preventDefault(); ask($("#ask-q").value); $("#ask-q").value = ""; });
+  el.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => ask(c.textContent)));
+  ask("How much could I lose?");
+}
+
+/* ------------------------------------------------------------------ demo-mode handlers (no server) */
+function bondPrice(y, c, m, f) { const n = Math.max(1, Math.round(m * f)); let p = 0; for (let k = 1; k <= n; k++) p += (100 * c / f + (k === n ? 100 : 0)) / Math.pow(1 + y / f, k); return p; }
+function jsScenario(b) {
+  const ac = { Equity: b.equity || 0, "Real Estate": b.real_estate || 0, Commodity: b.commodity || 0 };
+  const rows = DEMO.meta.instruments.map((i) => {
+    let pm;
+    if (i.coupon != null && i.maturity != null) { const sh = (b.rates || 0) + (i.sector !== "Government" ? b.credit_spread || 0 : 0);
+      pm = bondPrice(i.ytm + sh, i.coupon, i.maturity, i.freq) / bondPrice(i.ytm, i.coupon, i.maturity, i.freq) - 1; }
+    else pm = ac[i.asset_class] || 0;
+    const fx = i.currency !== DEMO.meta.base_currency ? (b.fx || {})[i.currency] || 0 : 0;
+    const tm = (1 + pm) * (1 + fx) - 1; return { id: i.id, name: i.name, total_move: tm, pnl: i.market_value * tm };
+  }).sort((a, z) => a.pnl - z.pnl);
+  const total = rows.reduce((a, r) => a + r.pnl, 0), nav = DEMO.meta.nav, worst = rows[0], best = rows[rows.length - 1];
+  let plain = `Under '${b.name || "Custom"}', the portfolio would ${total < 0 ? "lose" : "gain"} about ${fmt.money(Math.abs(total))} (${fmt.spct(total / nav)}).`;
+  if (total < 0) plain += ` The biggest hit comes from ${worst.name} (${fmt.money(worst.pnl)})` + (best.pnl > 0 ? `, while ${best.name} cushions the blow (${fmt.money(best.pnl)}).` : ".");
+  else if (best.pnl > 0) plain += ` The biggest gain comes from ${best.name} (${fmt.money(best.pnl)}).`;
+  return { pnl: total, pnl_pct: total / nav, nav_after: nav + total, positions: rows, plain };
+}
+const INTENTS = [
+  [/\b(2008|financial crisis)\b/, "What happens in a 2008 crisis?"], [/\b(2022|inflation)\b/, "What happens in a 2022-style inflation shock?"],
+  [/\bmean|\bdefin|\bwhat is\b/, null], [/\bwhy\b.*\b(down|up|fell|rose|drop|move|moved|change)\b|\btoday\b|\byesterday\b/, "Why did the portfolio move today?"],
+  [/\bcomplian|\brule|\bbreach|\blimit/, "Am I breaking any rules?"], [/\bprivate\b|\bcommitment|\bcapital call|\bunfunded/, "What about my private funds?"],
+  [/\bliquid|\bsell (it|everything|quickly)|\bhow (fast|quickly)/, "How liquid is the portfolio?"], [/\binterest rate|\brates?\b|\bduration\b|\bbond|\bdv01/, "How exposed am I to interest rates?"],
+  [/\bwhere\b.*\brisk|\brisk\b.*\b(from|coming|driver|biggest|most)|\bcontribut/, "Where is my risk coming from?"],
+  [/\bconcentrat|\bdiversif|\blargest|\bbiggest holding|\btop holding/, "Is the portfolio concentrated?"],
+  [/\blose\b|\bloss\b|\bvar\b|\bvalue at risk|\bbad day|\bdownside|\bworst/, "How much could I lose?"],
+  [/\bperform|\breturn|\bbenchmark|\bbeat|\boutperform|\bunderperform/, "How am I doing against the benchmark?"],
+  [/\bvolatil|\bswing|\bbumpy|\brisky\b/, "How risky is it?"], [/\bworth\b|\bvalue\b|\bnav\b|\bwhat do i own|\bholdings?\b|\bsummar/, "How much is my portfolio worth?"],
+];
+function jsExplain(question) {
+  const q = question.toLowerCase();
+  const num = "(\\d+(?:\\.\\d+)?)\\s*(%|percent|bps|basis points|pp|percentage points?)?";
+  const down = "(fall|falls|drop|drops|crash|crashes|decline|declines|lose|loses|down|weaken\\w*)", up = "(rise|rises|jump|jumps|gain|gains|up|rally|rallies|climb|climbs|strengthen\\w*)";
+  const nouns = { equity: "(equit\\w*|stocks?|shares|market)", rates: "(rates?|yields?|interest rates?)", real_estate: "(property|real estate|reits?)", commodity: "(gold|commodit\\w*)", dollar: "(dollar|usd)" };
+  const shocks = {};
+  for (const [k, noun] of Object.entries(nouns)) for (const [dir, sg] of [[down, -1], [up, 1]]) {
+    const m = q.match(new RegExp(noun + "\\D{0,25}?" + dir + "\\D{0,15}?" + num)); if (m) { const unit = m[m.length - 1] || ""; const v = parseFloat(m[m.length - 2]);
+      shocks[k] = sg * (unit.startsWith("bp") || unit.startsWith("basis") ? v / 10000 : v / 100); break; } }
+  if (Object.keys(shocks).length) {
+    const body = { equity: shocks.equity, rates: shocks.rates, real_estate: shocks.real_estate, commodity: shocks.commodity };
+    if (shocks.dollar) { const fx = 1 / (1 + shocks.dollar) - 1; body.fx = { EUR: fx, JPY: fx, GBP: fx }; }
+    const labels = { equity: "equities", rates: "rates", real_estate: "property", commodity: "commodities", dollar: "the dollar" };
+    let name = Object.entries(shocks).map(([k, v]) => k === "rates" ? `${labels[k]} ${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)} pp` : `${labels[k]} ${fmt.spct(v, 0)}`).join(", ");
+    body.name = name[0].toUpperCase() + name.slice(1);
+    const r = jsScenario(body); return { answer: r.plain, sources: [{ label: "Scenario P&L", value: r.pnl }, { label: "Scenario P&L (% of NAV)", value: r.pnl_pct }] };
+  }
+  for (const [re, key] of INTENTS) {
+    if (!re.test(q)) continue;
+    if (key) return DEMO.answers[key];
+    for (const term of ["sharpe", "var", "value at risk", "drawdown", "duration", "tvpi"]) if (q.includes(term)) {
+      const map = { sharpe: "What does Sharpe ratio mean?", var: "What is VaR?", "value at risk": "What is VaR?", drawdown: "What is drawdown?", duration: "What is duration?", tvpi: "What is TVPI?" };
+      return DEMO.answers[map[term]]; }
+  }
+  return { answer: "I am not sure how to answer that yet. Try asking: 'How much could I lose?', 'Where is my risk coming from?', 'What if equities fall 20%?', 'How am I doing against the benchmark?', 'How liquid is the portfolio?' or 'Am I breaking any rules?'", sources: [] };
+}
+const demoOrders = [];
+function demoHandler(method, path, opts) {
+  if (method === "POST" && path === "/api/scenarios/custom") return jsScenario(opts.body);
+  if (method === "POST" && path === "/api/trading/optimise") return DEMO["POST /api/trading/optimise " + opts.body.method];
+  if (method === "POST" && path === "/api/trading/rebalance") return DEMO["POST /api/trading/rebalance " + opts.key];
+  if (method === "GET" && path.startsWith("/api/explain?q=")) return jsExplain(decodeURIComponent(path.slice(15)));
+  if (path === "/api/trading/orders") {
+    if (method === "POST") { const b = opts.body;
+      const blocked = b.instrument_id === "EMB" && b.side === "BUY";
+      const o = { id: demoOrders.length + 1, instrument_id: b.instrument_id, side: b.side, quantity: b.quantity, status: blocked ? "REJECTED" : "NEW" };
+      demoOrders.push(o);
+      return { order: o, compliance: { approved: !blocked, plain: blocked ? "Trades blocked. Ember Tobacco is on the 'tobacco' exclusion list." :
+        "Recorded in this demo only. The full pre-trade check runs on the server." } }; }
+    return demoOrders;
+  }
+  return undefined;
+}
+
+/* ------------------------------------------------------------------ boot */
+buildNav();
+window.addEventListener("hashchange", show);
+api("/api/summary").then((s) => { $("#pf-name").textContent = `${s.portfolio} · as of ${s.as_of}`; }).catch(() => {});
+show();
+</script>
+</body></html>

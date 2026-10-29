@@ -1,0 +1,6 @@
+id,name,asset_class,quantity,sector,country,currency,yahoo,coinbase,finnhub,alpaca
+BTC,Bitcoin,Crypto,1.5,Crypto,Global,USD,BTC-USD,BTC-USD,BINANCE:BTCUSDT,BTC/USD
+ETH,Ether,Crypto,25,Crypto,Global,USD,ETH-USD,ETH-USD,BINANCE:ETHUSDT,ETH/USD
+SOL,Solana,Crypto,300,Crypto,Global,USD,SOL-USD,SOL-USD,BINANCE:SOLUSDT,SOL/USD
+LINK,Chainlink,Crypto,2000,Crypto,Global,USD,LINK-USD,LINK-USD,BINANCE:LINKUSDT,LINK/USD
+CASH,,,10000,,,,,,,

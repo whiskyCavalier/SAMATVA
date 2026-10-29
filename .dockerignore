@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.opp_cache/
+__pycache__/
+tests/
+*.pdf
+*.xlsx

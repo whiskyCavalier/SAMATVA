@@ -1,0 +1,13 @@
+services:
+  platform:
+    build: .
+    ports:
+      - "8000:8000"
+    # API keys and settings come from .env (copy .env.example). The file is never baked into the image.
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./examples:/app/examples:ro
+    environment:
+      OPP_LIVE: "1"

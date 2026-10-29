@@ -1,0 +1,13 @@
+id,name,asset_class,quantity,sector,country,currency,yahoo,finnhub,alpaca,tags
+AAPL,Apple,Equity,400,Technology,United States,USD,AAPL,AAPL,AAPL,
+MSFT,Microsoft,Equity,200,Technology,United States,USD,MSFT,MSFT,MSFT,
+NVDA,NVIDIA,Equity,500,Technology,United States,USD,NVDA,NVDA,NVDA,
+AMZN,Amazon,Equity,350,Consumer,United States,USD,AMZN,AMZN,AMZN,
+JPM,JPMorgan Chase,Equity,250,Financials,United States,USD,JPM,JPM,JPM,
+XOM,Exxon Mobil,Equity,400,Energy,United States,USD,XOM,XOM,XOM,fossil-fuels
+JNJ,Johnson & Johnson,Equity,300,Healthcare,United States,USD,JNJ,JNJ,JNJ,
+IEF,iShares 7-10 Year Treasury Bond ETF,Fixed Income,1500,Government,United States,USD,IEF,IEF,IEF,
+LQD,iShares Investment Grade Corporate Bond ETF,Fixed Income,800,Corporate,United States,USD,LQD,LQD,LQD,
+GLD,SPDR Gold Shares,Commodity,200,Commodities,Global,USD,GLD,GLD,GLD,
+VNQ,Vanguard Real Estate ETF,Real Estate,500,Real Estate,United States,USD,VNQ,VNQ,VNQ,
+CASH,,,25000,,,,,,,

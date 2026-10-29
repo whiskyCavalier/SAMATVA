@@ -1,0 +1,11 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+*.pdf
+*.xlsx
+.env
+.env.*
+!.env.example
+.opp_cache/

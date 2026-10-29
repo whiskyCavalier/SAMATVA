@@ -1,0 +1,7 @@
+[
+  {"id": "R1", "type": "max_position_weight", "limit": 0.15, "description": "No single holding above 15%"},
+  {"id": "R2", "type": "max_group_weight", "limit": 0.70, "dimension": "asset_class", "group": "Equity", "description": "Equities at most 70%"},
+  {"id": "R3", "type": "exclusion", "limit": 0, "tag": "fossil-fuels", "description": "No fossil-fuel producers"},
+  {"id": "R4", "type": "max_var", "limit": 0.02, "confidence": 0.99, "description": "One-day 99% VaR under 2%"},
+  {"id": "R5", "type": "min_cash", "limit": 0.01, "description": "Keep at least 1% in cash"}
+]
